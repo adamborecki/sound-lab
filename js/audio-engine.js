@@ -35,6 +35,20 @@ class AudioEngine {
     this.masterGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.01);
   }
 
+  get isSuspended() {
+    return !!this.ctx && this.ctx.state === "suspended";
+  }
+
+  // Pauses/resumes the whole audio graph without tearing down any voices,
+  // so a station's controls stay exactly where the student left them.
+  async suspend() {
+    if (this.ctx && this.ctx.state === "running") await this.ctx.suspend();
+  }
+
+  async resume() {
+    if (this.ctx && this.ctx.state === "suspended") await this.ctx.resume();
+  }
+
   // Creates a single oscillator voice with its own gain node for click-free
   // fades, pre-connected to the master chain.
   createVoice({ freq = 440, type = "sine", gain = 0.25 } = {}) {

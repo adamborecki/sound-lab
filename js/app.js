@@ -153,8 +153,26 @@ overlayStartBtn.addEventListener("click", async () => {
   stopBtn.hidden = false;
 });
 
-stopBtn.addEventListener("click", () => {
-  audioEngine.stopAll();
+function setStoppedUI() {
+  stopBtn.textContent = "▶ Resume Sound";
+  stopBtn.classList.remove("btn-stop");
+  stopBtn.classList.add("btn-start");
+}
+
+function setRunningUI() {
+  stopBtn.textContent = "■ Stop All Sound";
+  stopBtn.classList.remove("btn-start");
+  stopBtn.classList.add("btn-stop");
+}
+
+stopBtn.addEventListener("click", async () => {
+  if (audioEngine.isSuspended) {
+    await audioEngine.resume();
+    setRunningUI();
+  } else {
+    await audioEngine.suspend();
+    setStoppedUI();
+  }
 });
 
 window.addEventListener("hashchange", route);
