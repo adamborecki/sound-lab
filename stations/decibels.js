@@ -8,15 +8,28 @@ const COMPLETE_AFTER_INTERACTIONS = 6;
 const DEFAULT_PERCENT = 25;
 const SILENCE_FLOOR_DBFS = -60;
 
+// Loudest first — a ladder you climb down toward silence. The divider sits
+// at 85 dB because that's OSHA's action level (triggers mandatory hearing
+// conservation programs) and also NIOSH's recommended 8-hour exposure
+// limit — the most commonly cited "you should be protecting your ears now"
+// line for sustained exposure.
 const SPL_REFERENCE = [
-  ["Threshold of hearing", "0 dB SPL"],
-  ["Whisper", "~30 dB SPL"],
-  ["Quiet room", "~40 dB SPL"],
-  ["Normal conversation", "~60 dB SPL"],
-  ["City traffic", "~85 dB SPL"],
-  ["Rock concert", "~110 dB SPL"],
-  ["Threshold of pain", "~130 dB SPL"],
+  { label: "Threshold of pain", db: 130, emoji: "😖" },
+  { label: "Rock concert", db: 110, emoji: "🎸" },
+  { label: "City traffic", db: 85, emoji: "🚗" },
+  {
+    divider: true,
+    text: "⚠️ Hearing protection recommended above this line — sustained exposure at 85 dB SPL or louder can damage hearing (OSHA action level / NIOSH 8-hour limit).",
+  },
+  { label: "Normal conversation", db: 60, emoji: "💬" },
+  { label: "Quiet room", db: 40, emoji: "🏠" },
+  { label: "Whisper", db: 30, emoji: "🤫" },
+  { label: "Threshold of hearing", db: 0, emoji: "👂" },
 ];
+
+function formatSplValue(db) {
+  return `${db === 0 ? "0" : "~" + db} dB SPL`;
+}
 
 function ampToDbfs(amp) {
   if (amp <= 0) return -Infinity;
@@ -56,8 +69,25 @@ export function mount(container, { audioEngine, accent }) {
         microphone can measure that. Free "sound meter" / "dB meter" apps exist for iOS and
         Android if you want a real reading of the room you're in.
       </p>
-      <ul class="spl-list">
-        ${SPL_REFERENCE.map(([label, value]) => `<li><span>${label}</span><span>${value}</span></li>`).join("")}
+
+      <div class="spl-stage" id="spl-stage">
+        <p class="spl-stage-placeholder" id="spl-placeholder">Tap a level below to see it.</p>
+        <div class="spl-swarm" id="spl-swarm" hidden aria-hidden="true"></div>
+        <p class="spl-stage-caption" id="spl-stage-caption" hidden></p>
+      </div>
+
+      <ul class="spl-list" id="spl-list">
+        ${SPL_REFERENCE.map((item, i) =>
+          item.divider
+            ? `<li class="spl-divider">${item.text}</li>`
+            : `<li>
+                <button class="spl-item" type="button" data-index="${i}">
+                  <span class="spl-item-emoji" aria-hidden="true">${item.emoji}</span>
+                  <span class="spl-item-label">${item.label}</span>
+                  <span class="spl-item-value">${formatSplValue(item.db)}</span>
+                </button>
+              </li>`
+        ).join("")}
       </ul>
     </div>
   `;
@@ -66,6 +96,36 @@ export function mount(container, { audioEngine, accent }) {
   const slider = container.querySelector("#db-slider");
   const percentEl = container.querySelector("#db-percent");
   const canvas = container.querySelector("#db-canvas");
+  const splPlaceholder = container.querySelector("#spl-placeholder");
+  const splSwarm = container.querySelector("#spl-swarm");
+  const splCaption = container.querySelector("#spl-stage-caption");
+
+  function showSplItem(item, button) {
+    container.querySelectorAll(".spl-item").forEach((b) => b.classList.remove("active"));
+    button.classList.add("active");
+
+    const t = item.db / 130;
+    const count = 1 + Math.round(t * 15);
+    const size = 1.2 + t * 3.3;
+
+    splPlaceholder.hidden = true;
+    splSwarm.hidden = false;
+    splSwarm.style.setProperty("--emoji-size", `${size}rem`);
+    splSwarm.innerHTML = Array.from({ length: count }, () => `<span>${item.emoji}</span>`).join("");
+    splCaption.hidden = false;
+    splCaption.textContent = `${item.label} — ${formatSplValue(item.db)}. Illustrative only, not a precise physical scale.`;
+
+    interactionCount += 1;
+    recordInteraction(STATION_ID);
+    if (interactionCount >= COMPLETE_AFTER_INTERACTIONS) markComplete(STATION_ID);
+  }
+
+  container.querySelector("#spl-list").addEventListener("click", (e) => {
+    const btn = e.target.closest(".spl-item");
+    if (!btn) return;
+    const item = SPL_REFERENCE[Number(btn.dataset.index)];
+    showSplItem(item, btn);
+  });
 
   let voice = null;
   let localAnalyser = null;

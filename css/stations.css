@@ -813,6 +813,46 @@
   margin: 0 0 1.25rem;
 }
 
+.spl-stage {
+  min-height: 8.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.spl-stage-placeholder {
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.spl-swarm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15em;
+  line-height: 1;
+}
+
+.spl-swarm span {
+  font-size: var(--emoji-size, 1.5rem);
+  line-height: 1;
+}
+
+.spl-stage-caption {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 .spl-list {
   list-style: none;
   margin: 0;
@@ -822,22 +862,61 @@
   gap: 0.5rem;
 }
 
-.spl-list li {
+.spl-item {
+  width: 100%;
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.spl-list li span:first-child {
   color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
 }
 
-.spl-list li span:last-child {
+.spl-item-emoji {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.spl-item-label {
+  flex: 1;
+}
+
+.spl-item-value {
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.spl-item:hover {
+  border-color: var(--accent, var(--accent-default));
+}
+
+.spl-item.active {
+  border-color: var(--accent, var(--accent-default));
+  background: color-mix(in srgb, var(--accent, var(--accent-default)) 16%, transparent);
+}
+
+.spl-item.active .spl-item-value {
+  color: var(--text);
+}
+
+.spl-item:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.spl-divider {
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 200, 100, 0.08);
+  border: 1px dashed rgba(255, 200, 100, 0.4);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
