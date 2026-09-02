@@ -56,7 +56,7 @@ function renderFloor() {
   soundHelp.innerHTML = `
     <summary>Not hearing anything?</summary>
     <ul>
-      <li>On iPhone, check the mute switch on the side isn't flipped to silent — Sound Lab won't play through it.</li>
+      <li>On iPhone, check that Silent Mode isn't on — Sound Lab won't play through it.</li>
       <li>Check your volume is turned up and no other app has it muted.</li>
       <li>Make sure you tapped "Start Sound" at least once this visit.</li>
       <li>Try headphones — some laptop speakers roll off the low end used at low frequencies.</li>
