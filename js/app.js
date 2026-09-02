@@ -51,6 +51,19 @@ function renderFloor() {
   intro.textContent = "Pick a station. Touch things. See what happens.";
   floorEl.appendChild(intro);
 
+  const soundHelp = document.createElement("details");
+  soundHelp.className = "sound-help";
+  soundHelp.innerHTML = `
+    <summary>Not hearing anything?</summary>
+    <ul>
+      <li>On iPhone, check the mute switch on the side isn't flipped to silent — Sound Lab won't play through it.</li>
+      <li>Check your volume is turned up and no other app has it muted.</li>
+      <li>Make sure you tapped "Start Sound" at least once this visit.</li>
+      <li>Try headphones — some laptop speakers roll off the low end used at low frequencies.</li>
+    </ul>
+  `;
+  floorEl.appendChild(soundHelp);
+
   if (total > 0) {
     if (done >= total) {
       const banner = document.createElement("div");

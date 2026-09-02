@@ -22,6 +22,10 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   min-height: 100%;
+  /* Kills the double-tap-to-zoom gesture (which fires constantly on all
+     the tap-happy controls here) while leaving pinch-zoom and panning
+     alone — those stay available for accessibility. */
+  touch-action: manipulation;
 }
 
 body {
@@ -161,6 +165,13 @@ main {
   font-size: 1.15rem;
   padding: 1rem 2rem;
   animation: overlay-pulse 2.4s ease-in-out infinite;
+}
+
+.start-overlay-note {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin: 1.5rem 0 0;
+  line-height: 1.5;
 }
 
 @keyframes overlay-pulse {
