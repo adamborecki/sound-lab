@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sound Lab</title>
+  <meta name="description" content="A hands-on museum floor for exploring sound, frequency, amplitude, and timbre." />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/stations.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">Sound Lab</a>
+    <div class="audio-controls">
+      <button id="stop-all" class="btn btn-stop" hidden>■ Stop All Sound</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="floor" class="floor"></section>
+    <section id="stage" class="stage" hidden></section>
+  </main>
+
+  <div id="start-overlay" class="start-overlay">
+    <div class="start-overlay-inner">
+      <p class="start-overlay-kicker">Sound Lab</p>
+      <h1>This site makes noise.</h1>
+      <p class="start-overlay-sub">Browsers block audio until you say go. Tap the button and you're in.</p>
+      <button id="overlay-start-btn" class="btn btn-start btn-overlay">▶ Start Sound</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
