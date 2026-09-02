@@ -65,6 +65,15 @@ export const stations = [
     accent: "#FF9B7C",
   },
   {
+    id: "decibels",
+    title: "Decibels: FS vs SPL",
+    category: "amplitude",
+    purpose: "Two different meanings of \"dB\" — one digital, one physical.",
+    required: false,
+    module: "../stations/decibels.js",
+    accent: "#4DD9C5",
+  },
+  {
     id: "finish",
     title: "Finish & Submit",
     category: "finish",

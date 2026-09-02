@@ -4,7 +4,7 @@ A museum-floor-style site for exploring acoustics and synthesis basics. No build
 
 ## Status
 
-Milestone 3: shell, shared audio engine, progress tracking, seven stations (Frequency, Amplitude, Wave Shape Gallery, Oscillator, Pitch × Loudness, Harmonics, Octave Machine), and a Finish & Submit page. Floor groups stations into Start Here / Explore / Finish and shows a baseline-complete banner once all required stations are done. Finish collects two reflections and generates a Canvas submission receipt with a SHA-256 completion checksum (Web Crypto), copyable to the clipboard with a manual-select fallback.
+Milestone 3+: shell, shared audio engine, progress tracking, eight stations (Frequency, Amplitude, Wave Shape Gallery, Oscillator, Pitch × Loudness, Harmonics, Octave Machine, Decibels: FS vs SPL), and a Finish & Submit page. Floor groups stations into Start Here / Explore / Finish and shows a baseline-complete banner once all required stations are done. Finish collects two reflections and generates a Canvas submission receipt with a SHA-256 completion checksum (Web Crypto), copyable to the clipboard with a manual-select fallback. Also fixed: double-tap-to-zoom on mobile, and Stop All Sound is now a real suspend/resume toggle instead of a one-way kill switch.
 
 ## Running locally
 
@@ -48,6 +48,7 @@ stations/
   frequency-amplitude.js
   harmonics.js
   octave.js
+  decibels.js         live dBFS meter + static dB SPL reference chart
   finish.js           reflections + Canvas receipt + SHA-256 checksum
 ```
 
