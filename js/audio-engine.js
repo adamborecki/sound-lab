@@ -99,6 +99,57 @@ class AudioEngine {
     return voice;
   }
 
+  // Same voice-with-fades pattern as createVoice, but backed by a looping
+  // buffer of random samples instead of an oscillator — for aperiodic/noise
+  // examples that don't fit the oscillator API (no frequency, no periodic
+  // wave).
+  createNoiseVoice({ gain = 0.2 } = {}) {
+    if (!this.ctx) throw new Error("AudioEngine not started");
+    const bufferSeconds = 2;
+    const buffer = this.ctx.createBuffer(
+      1,
+      this.ctx.sampleRate * bufferSeconds,
+      this.ctx.sampleRate
+    );
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+
+    const voiceGain = this.ctx.createGain();
+    voiceGain.gain.value = 0;
+    src.connect(voiceGain);
+    voiceGain.connect(this.masterGain);
+    src.start();
+
+    const now = () => this.ctx.currentTime;
+    voiceGain.gain.setTargetAtTime(gain, now(), FADE_SECONDS);
+
+    const voice = {
+      gainNode: voiceGain,
+      setGain(g, ramp = FADE_SECONDS) {
+        voiceGain.gain.setTargetAtTime(g, now(), ramp);
+      },
+      stop: () => {
+        voiceGain.gain.setTargetAtTime(0, now(), FADE_SECONDS);
+        setTimeout(() => {
+          try {
+            src.stop();
+          } catch (e) {
+            /* already stopped */
+          }
+          src.disconnect();
+          voiceGain.disconnect();
+          this.voices.delete(voice);
+        }, FADE_SECONDS * 1000 * 6);
+      },
+    };
+    this.voices.add(voice);
+    return voice;
+  }
+
   stopAll() {
     for (const voice of Array.from(this.voices)) voice.stop();
   }

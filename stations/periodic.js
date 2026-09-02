@@ -1,0 +1,168 @@
+import { drawWaveform, drawIdleMessage } from "../js/visualizers.js";
+import { waveIconSvg } from "../js/wave-icons.js";
+import { clamp } from "../js/utils.js";
+import { recordInteraction, markComplete } from "../js/progress.js";
+
+const STATION_ID = "periodic";
+const FIXED_HZ = 300;
+const MIN_WINDOW = 150; // samples — zoomed all the way in
+const MAX_WINDOW = 900; // samples — zoomed all the way out
+const COMPLETE_AFTER_INTERACTIONS = 6;
+
+const SOURCES = [
+  { id: "sine", label: "Sine", periodic: true, icon: "sine" },
+  { id: "square", label: "Square", periodic: true, icon: "square" },
+  { id: "noise", label: "Noise", periodic: false, icon: "noise" },
+];
+
+export function mount(container, { audioEngine, accent }) {
+  container.innerHTML = `
+    <p class="prompt">Pick a sound, then zoom into its waveform. Periodic sounds settle into a repeating shape no matter how far in you go. Noise never does.</p>
+
+    <div class="wave-button-row" id="source-buttons"></div>
+
+    <p class="periodic-status" id="periodic-status"></p>
+
+    <div class="numeric-row">
+      <span id="zoom-label">Zoom</span>
+      <span id="zoom-readout">— ms window</span>
+    </div>
+    <input
+      type="range"
+      id="zoom-slider"
+      class="big-slider"
+      min="0"
+      max="100"
+      value="0"
+      step="1"
+      aria-label="Zoom into the waveform"
+    />
+
+    <canvas class="waveform-canvas" id="periodic-canvas" width="600" height="180"
+      role="img" aria-label="Waveform of the selected sound"></canvas>
+
+    <div class="periodic-definitions">
+      <div class="periodic-def-card">
+        <h3>Periodic</h3>
+        <ul>
+          <li>Regular repetition (when you zoom in a lot!)</li>
+          <li>Has a perceivable pitch — you can sing it</li>
+        </ul>
+      </div>
+      <div class="periodic-def-card periodic-def-card-noise">
+        <h3>Aperiodic</h3>
+        <ul>
+          <li>No regular repetition</li>
+          <li>No perceptible pitch — you can't sing it</li>
+          <li>This is "noise"</li>
+        </ul>
+      </div>
+    </div>
+  `;
+
+  const buttonRow = container.querySelector("#source-buttons");
+  const statusEl = container.querySelector("#periodic-status");
+  const zoomSlider = container.querySelector("#zoom-slider");
+  const zoomReadout = container.querySelector("#zoom-readout");
+  const canvas = container.querySelector("#periodic-canvas");
+
+  const buttons = new Map();
+  for (const src of SOURCES) {
+    const btn = document.createElement("button");
+    btn.className = "wave-btn";
+    btn.type = "button";
+    btn.innerHTML = `${waveIconSvg(src.icon)}<span>${src.label}</span>`;
+    btn.addEventListener("click", () => selectSource(src));
+    buttonRow.appendChild(btn);
+    buttons.set(src.id, btn);
+  }
+
+  let voice = null;
+  let stopViz = null;
+  let current = SOURCES[0];
+  let windowSamples = MAX_WINDOW;
+  let interactionCount = 0;
+  const triedSources = new Set();
+
+  function updateStatus() {
+    statusEl.textContent = current.periodic
+      ? `${current.label} is periodic — it repeats, and you can hum its pitch.`
+      : `${current.label} is aperiodic — it never repeats, and there's no pitch to hum.`;
+    statusEl.classList.toggle("aperiodic", !current.periodic);
+  }
+
+  function applySelection(src) {
+    current = src;
+    for (const [id, btn] of buttons) btn.classList.toggle("active", id === src.id);
+    updateStatus();
+  }
+
+  function createVoiceFor(src) {
+    if (src.id === "noise") return audioEngine.createNoiseVoice({ gain: 0.2 });
+    return audioEngine.createVoice({ freq: FIXED_HZ, type: src.id, gain: 0.25 });
+  }
+
+  function maybeComplete() {
+    if (triedSources.size >= 2 && interactionCount >= COMPLETE_AFTER_INTERACTIONS) {
+      markComplete(STATION_ID);
+    }
+  }
+
+  function selectSource(src) {
+    if (src.id === current.id && voice) return;
+    applySelection(src);
+    if (audioEngine.isStarted) {
+      if (voice) voice.stop();
+      voice = createVoiceFor(src);
+    }
+    triedSources.add(src.id);
+    interactionCount += 1;
+    recordInteraction(STATION_ID);
+    maybeComplete();
+  }
+
+  function updateZoomReadout() {
+    const sampleRate = audioEngine.ctx ? audioEngine.ctx.sampleRate : 44100;
+    const ms = (windowSamples / sampleRate) * 1000;
+    zoomReadout.textContent = `${ms.toFixed(1)} ms window`;
+  }
+
+  function setZoom(pct, userInitiated = false) {
+    const clamped = clamp(pct, 0, 100);
+    zoomSlider.value = String(clamped);
+    windowSamples = Math.round(MAX_WINDOW - (clamped / 100) * (MAX_WINDOW - MIN_WINDOW));
+    updateZoomReadout();
+    if (userInitiated) {
+      interactionCount += 1;
+      recordInteraction(STATION_ID);
+      maybeComplete();
+    }
+  }
+
+  zoomSlider.addEventListener("input", () => setZoom(Number(zoomSlider.value), true));
+
+  function setupAudio() {
+    if (!audioEngine.isStarted || voice) return;
+    voice = createVoiceFor(current);
+    stopViz = drawWaveform(canvas, audioEngine.analyser, {
+      color: accent,
+      windowSamples: () => windowSamples,
+    });
+  }
+
+  applySelection(current);
+  setZoom(0);
+
+  if (audioEngine.isStarted) {
+    setupAudio();
+  } else {
+    drawIdleMessage(canvas, "Tap Start Sound to hear it");
+  }
+  window.addEventListener("soundlab:started", setupAudio);
+
+  return function unmount() {
+    window.removeEventListener("soundlab:started", setupAudio);
+    if (stopViz) stopViz();
+    if (voice) voice.stop();
+  };
+}

@@ -74,6 +74,15 @@ export const stations = [
     accent: "#4DD9C5",
   },
   {
+    id: "periodic",
+    title: "Periodic vs. Aperiodic",
+    category: "waves",
+    purpose: "Zoom into a waveform. Does it repeat, or is it noise?",
+    required: false,
+    module: "../stations/periodic.js",
+    accent: "#E066FF",
+  },
+  {
     id: "finish",
     title: "Finish & Submit",
     category: "finish",

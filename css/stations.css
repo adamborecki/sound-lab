@@ -920,3 +920,61 @@
   font-size: 0.85rem;
   line-height: 1.5;
 }
+
+/* -------- periodic vs aperiodic -------- */
+
+.periodic-status {
+  text-align: center;
+  font-weight: 600;
+  color: var(--accent, var(--accent-default));
+  margin: 0 0 1.5rem;
+}
+
+.periodic-status.aperiodic {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+#zoom-label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.periodic-definitions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.periodic-def-card {
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.periodic-def-card h3 {
+  font-family: var(--font-display);
+  margin: 0 0 0.6rem;
+  color: var(--accent, var(--accent-default));
+  font-size: 1rem;
+}
+
+.periodic-def-card-noise h3 {
+  color: var(--text-dim);
+}
+
+.periodic-def-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+  .periodic-definitions {
+    grid-template-columns: 1fr;
+  }
+}

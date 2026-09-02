@@ -27,6 +27,12 @@ export function drawWaveform(canvas, analyser, options = {}) {
   const ampScaleOpt = options.ampScale;
   const getAmpScale = () =>
     typeof ampScaleOpt === "function" ? ampScaleOpt() : ampScaleOpt ?? 1;
+  // Optional "zoom": how many samples to draw across the canvas width.
+  // Number or a () => number getter for a live zoom slider. Defaults to
+  // roughly half the buffer, same as before this option existed.
+  const windowOpt = options.windowSamples;
+  const getWindowSamples = () =>
+    typeof windowOpt === "function" ? windowOpt() : windowOpt ?? null;
   let raf = null;
   let stopped = false;
   const reduced = prefersReducedMotion();
@@ -34,16 +40,12 @@ export function drawWaveform(canvas, analyser, options = {}) {
   let lastDraw = 0;
 
   const data = new Uint8Array(analyser.fftSize);
-  // Search only the first half of the buffer for a trigger point, so the
-  // second half is guaranteed available to draw after it.
-  const searchLimit = Math.floor(data.length / 2);
-  const drawLength = data.length - searchLimit;
 
   // Without this, each animation frame samples a different, uncorrelated
   // slice of phase, so a perfectly periodic tone looks like it's jittering
   // in place. Locking the draw window to a rising zero-crossing (the way a
   // hardware oscilloscope triggers) makes the shape hold still instead.
-  function findTriggerOffset() {
+  function findTriggerOffset(searchLimit) {
     for (let i = 1; i < searchLimit; i++) {
       if (data[i - 1] < 128 && data[i] >= 128) return i;
     }
@@ -63,7 +65,18 @@ export function drawWaveform(canvas, analyser, options = {}) {
     const h = canvas.height;
 
     analyser.getByteTimeDomainData(data);
-    const offset = findTriggerOffset();
+
+    const requestedWindow = getWindowSamples();
+    // A requested window is a desired *draw* length, with an equal budget
+    // set aside before it for trigger search — capped by the real buffer.
+    const totalWindow =
+      requestedWindow == null
+        ? data.length
+        : Math.max(4, Math.min(Math.round(requestedWindow) * 2, data.length));
+    const searchLimit = Math.floor(totalWindow / 2);
+    const drawLength = totalWindow - searchLimit;
+
+    const offset = findTriggerOffset(searchLimit);
     const ampScale = getAmpScale();
 
     ctx.clearRect(0, 0, w, h);
