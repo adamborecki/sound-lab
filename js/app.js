@@ -41,8 +41,9 @@ function stationGrid(list) {
 function renderFloor() {
   floorEl.innerHTML = "";
 
-  const requiredStations = stations.filter((s) => s.required);
-  const optionalStations = stations.filter((s) => !s.required);
+  const requiredStations = stations.filter((s) => s.required && !s.finish);
+  const optionalStations = stations.filter((s) => !s.required && !s.finish);
+  const finishStations = stations.filter((s) => s.finish);
   const { done, total } = requiredSummary(requiredStations.map((s) => s.id));
 
   const intro = document.createElement("p");
@@ -72,6 +73,10 @@ function renderFloor() {
   if (optionalStations.length) {
     floorEl.appendChild(sectionHeading("Explore"));
     floorEl.appendChild(stationGrid(optionalStations));
+  }
+  if (finishStations.length) {
+    floorEl.appendChild(sectionHeading("Finish"));
+    floorEl.appendChild(stationGrid(finishStations));
   }
 }
 

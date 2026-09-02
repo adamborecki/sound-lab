@@ -61,6 +61,9 @@ class AudioEngine {
       setType(waveType) {
         osc.type = waveType;
       },
+      setPeriodicWave(wave) {
+        osc.setPeriodicWave(wave);
+      },
       setGain(g, ramp = FADE_SECONDS) {
         voiceGain.gain.setTargetAtTime(g, now(), ramp);
       },

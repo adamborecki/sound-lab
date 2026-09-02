@@ -47,6 +47,15 @@ export const stations = [
     accent: "#6BFFB0",
   },
   {
+    id: "harmonics",
+    title: "Harmonics",
+    category: "harmonics",
+    purpose: "Add overtones to a fundamental and watch the waveform build up.",
+    required: true,
+    module: "../stations/harmonics.js",
+    accent: "#FFE066",
+  },
+  {
     id: "octave",
     title: "Octave Machine",
     category: "frequency",
@@ -54,6 +63,15 @@ export const stations = [
     required: false,
     module: "../stations/octave.js",
     accent: "#FF9B7C",
+  },
+  {
+    id: "finish",
+    title: "Finish & Submit",
+    category: "finish",
+    purpose: "Reflect, then generate your Canvas submission receipt.",
+    finish: true,
+    module: "../stations/finish.js",
+    accent: "#38BDF8",
   },
 ];
 

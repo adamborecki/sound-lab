@@ -23,6 +23,8 @@ function loadState() {
     startedAt: now,
     lastUpdatedAt: now,
     stations: {},
+    checks: {},
+    reflections: {},
   };
 }
 
@@ -87,4 +89,20 @@ export function requiredSummary(stationIds) {
   const total = stationIds.length;
   const done = stationIds.filter((id) => isComplete(id)).length;
   return { done, total };
+}
+
+export function recordCheck(id, value) {
+  state.checks = state.checks || {};
+  state.checks[id] = value;
+  save();
+}
+
+export function setReflection(key, text) {
+  state.reflections = state.reflections || {};
+  state.reflections[key] = text;
+  save();
+}
+
+export function getReflections() {
+  return state.reflections || {};
 }

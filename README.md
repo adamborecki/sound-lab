@@ -4,7 +4,7 @@ A museum-floor-style site for exploring acoustics and synthesis basics. No build
 
 ## Status
 
-Milestone 2: shell, shared audio engine, progress tracking, and six stations (Frequency, Amplitude, Wave Shape Gallery, Oscillator, Pitch × Loudness, Octave Machine). Floor groups stations into Start Here / Explore and shows a baseline-complete banner once all required stations are done.
+Milestone 3: shell, shared audio engine, progress tracking, seven stations (Frequency, Amplitude, Wave Shape Gallery, Oscillator, Pitch × Loudness, Harmonics, Octave Machine), and a Finish & Submit page. Floor groups stations into Start Here / Explore / Finish and shows a baseline-complete banner once all required stations are done. Finish collects two reflections and generates a Canvas submission receipt with a SHA-256 completion checksum (Web Crypto), copyable to the clipboard with a manual-select fallback.
 
 ## Running locally
 
@@ -35,7 +35,7 @@ js/
   app.js              hash router, mounts/unmounts stations, floor rendering
   audio-engine.js      one AudioContext, one master gain, voice helpers
   audio-start.js        shared "start audio" gesture entry point
-  progress.js            localStorage-backed completion tracking
+  progress.js            localStorage-backed completion tracking, reflections, checks
   station-registry.js  station metadata list
   visualizers.js        waveform canvas rendering
   wave-icons.js          shared oscillator waveform SVG icons
@@ -46,5 +46,9 @@ stations/
   waveforms.js
   oscillator.js
   frequency-amplitude.js
+  harmonics.js
   octave.js
+  finish.js           reflections + Canvas receipt + SHA-256 checksum
 ```
+
+A station entry can also set `finish: true` instead of `required`/optional — it renders in its own "Finish" floor section and is excluded from the baseline count (see `finish.js`).
