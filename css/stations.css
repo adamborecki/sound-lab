@@ -924,15 +924,23 @@
 /* -------- periodic vs aperiodic -------- */
 
 .periodic-status {
-  text-align: center;
-  font-weight: 600;
-  color: var(--accent, var(--accent-default));
-  margin: 0 0 1.5rem;
+  display: block;
+  width: fit-content;
+  margin: 0 auto 1.5rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #0f1220;
+  background: var(--accent, var(--accent-default));
 }
 
 .periodic-status.aperiodic {
   color: var(--text-dim);
-  font-style: italic;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 #zoom-label {

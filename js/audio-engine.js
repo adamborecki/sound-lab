@@ -102,8 +102,9 @@ class AudioEngine {
   // Same voice-with-fades pattern as createVoice, but backed by a looping
   // buffer of random samples instead of an oscillator — for aperiodic/noise
   // examples that don't fit the oscillator API (no frequency, no periodic
-  // wave).
-  createNoiseVoice({ gain = 0.2 } = {}) {
+  // wave). color "white" (flat spectrum) or "pink" (Paul Kellet's economy
+  // filter — equal energy per octave, so it leans darker/duller than white).
+  createNoiseVoice({ gain = 0.2, color = "white" } = {}) {
     if (!this.ctx) throw new Error("AudioEngine not started");
     const bufferSeconds = 2;
     const buffer = this.ctx.createBuffer(
@@ -112,7 +113,21 @@ class AudioEngine {
       this.ctx.sampleRate
     );
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    if (color === "pink") {
+      let b0 = 0;
+      let b1 = 0;
+      let b2 = 0;
+      for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99765 * b0 + white * 0.099046;
+        b1 = 0.963 * b1 + white * 0.2965164;
+        b2 = 0.57 * b2 + white * 1.0526913;
+        const pink = (b0 + b1 + b2 + white * 0.1848) * 0.11;
+        data[i] = Math.max(-1, Math.min(1, pink));
+      }
+    } else {
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    }
 
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;

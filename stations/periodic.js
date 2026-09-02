@@ -12,12 +12,13 @@ const COMPLETE_AFTER_INTERACTIONS = 6;
 const SOURCES = [
   { id: "sine", label: "Sine", periodic: true, icon: "sine" },
   { id: "square", label: "Square", periodic: true, icon: "square" },
-  { id: "noise", label: "Noise", periodic: false, icon: "noise" },
+  { id: "white", label: "White Noise", periodic: false, icon: "noise", color: "white" },
+  { id: "pink", label: "Pink Noise", periodic: false, icon: "noise", color: "pink" },
 ];
 
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
-    <p class="prompt">Pick a sound, then zoom into its waveform. Periodic sounds settle into a repeating shape no matter how far in you go. Noise never does.</p>
+    <p class="prompt">Zoom into the waveform. Does it repeat?</p>
 
     <div class="wave-button-row" id="source-buttons"></div>
 
@@ -25,7 +26,7 @@ export function mount(container, { audioEngine, accent }) {
 
     <div class="numeric-row">
       <span id="zoom-label">Zoom</span>
-      <span id="zoom-readout">— ms window</span>
+      <span id="zoom-readout">— ms</span>
     </div>
     <input
       type="range"
@@ -45,16 +46,15 @@ export function mount(container, { audioEngine, accent }) {
       <div class="periodic-def-card">
         <h3>Periodic</h3>
         <ul>
-          <li>Regular repetition (when you zoom in a lot!)</li>
-          <li>Has a perceivable pitch — you can sing it</li>
+          <li>Repeats (zoom in to see it)</li>
+          <li>Has a pitch</li>
         </ul>
       </div>
       <div class="periodic-def-card periodic-def-card-noise">
         <h3>Aperiodic</h3>
         <ul>
-          <li>No regular repetition</li>
-          <li>No perceptible pitch — you can't sing it</li>
-          <li>This is "noise"</li>
+          <li>Never repeats</li>
+          <li>No pitch — "noise"</li>
         </ul>
       </div>
     </div>
@@ -85,9 +85,7 @@ export function mount(container, { audioEngine, accent }) {
   const triedSources = new Set();
 
   function updateStatus() {
-    statusEl.textContent = current.periodic
-      ? `${current.label} is periodic — it repeats, and you can hum its pitch.`
-      : `${current.label} is aperiodic — it never repeats, and there's no pitch to hum.`;
+    statusEl.textContent = current.periodic ? "Periodic" : "Aperiodic — noise";
     statusEl.classList.toggle("aperiodic", !current.periodic);
   }
 
@@ -98,7 +96,7 @@ export function mount(container, { audioEngine, accent }) {
   }
 
   function createVoiceFor(src) {
-    if (src.id === "noise") return audioEngine.createNoiseVoice({ gain: 0.2 });
+    if (src.color) return audioEngine.createNoiseVoice({ gain: 0.2, color: src.color });
     return audioEngine.createVoice({ freq: FIXED_HZ, type: src.id, gain: 0.25 });
   }
 
@@ -124,7 +122,7 @@ export function mount(container, { audioEngine, accent }) {
   function updateZoomReadout() {
     const sampleRate = audioEngine.ctx ? audioEngine.ctx.sampleRate : 44100;
     const ms = (windowSamples / sampleRate) * 1000;
-    zoomReadout.textContent = `${ms.toFixed(1)} ms window`;
+    zoomReadout.textContent = `${ms.toFixed(1)} ms`;
   }
 
   function setZoom(pct, userInitiated = false) {
