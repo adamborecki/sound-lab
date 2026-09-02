@@ -3,9 +3,15 @@ import { recordInteraction, markComplete, recordCheck } from "../js/progress.js"
 
 const STATION_ID = "harmonics";
 const FUNDAMENTAL_HZ = 110;
-const PARTIAL_COUNT = 6;
+const PARTIAL_COUNT = 9;
 const COMPLETE_AFTER_INTERACTIONS = 6;
-const LABELS = { 1: "1st (fund.)", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th" };
+// Short labels keep every slot the same width so the row doesn't wrap
+// early on narrow screens; the fuller wording lives in aria-label instead.
+const LABELS = { 1: "Fund." };
+for (let k = 2; k <= PARTIAL_COUNT; k++) LABELS[k] = String(k);
+
+const ARIA_LABELS = { 1: "Fundamental (1st harmonic)" };
+for (let k = 2; k <= PARTIAL_COUNT; k++) ARIA_LABELS[k] = `${k}th harmonic`;
 
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
@@ -62,7 +68,7 @@ export function mount(container, { audioEngine, accent }) {
     slot.innerHTML = `
       <button class="harmonic-bar${k === 1 ? " locked" : ""}" type="button"
         style="--bar-height:${Math.round(100 / k)}%" ${k === 1 ? "disabled" : ""}
-        aria-pressed="${k === 1 ? "true" : "false"}" aria-label="${LABELS[k]} harmonic">
+        aria-pressed="${k === 1 ? "true" : "false"}" aria-label="${ARIA_LABELS[k]}">
         <span class="harmonic-bar-fill"></span>
       </button>
       <span class="harmonic-bar-label">${LABELS[k]}</span>
@@ -104,7 +110,9 @@ export function mount(container, { audioEngine, accent }) {
   function applyRecipe(name) {
     active.clear();
     if (name === "fundamental") active.add(1);
-    else if (name === "square") [1, 3, 5].forEach((k) => active.add(k));
+    else if (name === "square") {
+      for (let k = 1; k <= PARTIAL_COUNT; k += 2) active.add(k);
+    }
     else if (name === "saw") for (let k = 1; k <= PARTIAL_COUNT; k++) active.add(k);
     render();
     registerInteraction();
