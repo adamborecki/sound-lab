@@ -3,6 +3,9 @@ import { stations } from "../js/station-registry.js";
 
 const STATION_ID = "finish";
 const RECEIPT_SCHEMA = "sound-lab-receipt-v2";
+const QUESTION_1 = "What is one thing you understand better after experimenting with Sound Lab?";
+const QUESTION_2 =
+  "Describe one setting or experiment where changing something produced a result you didn't expect.";
 
 async function sha256Hex(text) {
   const bytes = new TextEncoder().encode(text);
@@ -29,10 +32,10 @@ export function mount(container) {
       what you actually did.
     </p>
 
-    <label class="reflection-label" for="reflection1">What is one thing you understand better after experimenting with Sound Lab?</label>
+    <label class="reflection-label" for="reflection1">${QUESTION_1}</label>
     <textarea id="reflection1" class="reflection-input" rows="3"></textarea>
 
-    <label class="reflection-label" for="reflection2">Describe one setting or experiment where changing something produced a result you didn't expect.</label>
+    <label class="reflection-label" for="reflection2">${QUESTION_2}</label>
     <textarea id="reflection2" class="reflection-input" rows="3"></textarea>
 
     <button class="btn btn-start" id="generate-btn" type="button">Generate My Export</button>
@@ -102,8 +105,8 @@ export function mount(container) {
       stationsCompleted,
       totalInteractions,
       totalActiveMinutes,
-      reflection1: r1.value.trim(),
-      reflection2: r2.value.trim(),
+      reflection1: { question: QUESTION_1, answer: r1.value.trim() },
+      reflection2: { question: QUESTION_2, answer: r2.value.trim() },
       stations: stationReports,
     };
 
