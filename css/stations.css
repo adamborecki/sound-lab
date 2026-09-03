@@ -124,6 +124,12 @@
   color: #0f1220;
 }
 
+.station-card .badge-optional {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-dim);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .enter-hint {
   position: absolute;
   bottom: 1.25rem;

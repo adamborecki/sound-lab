@@ -27,8 +27,11 @@ function stationGrid(list) {
     card.className = "station-card";
     card.href = `#/station/${station.id}`;
     card.style.setProperty("--accent", station.accent);
+    let badge = "";
+    if (complete) badge = '<span class="badge badge-complete">✓ Done</span>';
+    else if (station.required === false) badge = '<span class="badge badge-optional">Bonus</span>';
     card.innerHTML = `
-      ${complete ? '<span class="badge badge-complete">✓ Done</span>' : ""}
+      ${badge}
       <h3>${station.title}</h3>
       <p>${station.purpose}</p>
       <span class="enter-hint">Enter →</span>
@@ -41,10 +44,15 @@ function stationGrid(list) {
 function renderFloor() {
   floorEl.innerHTML = "";
 
-  const requiredStations = stations.filter((s) => s.required && !s.finish);
-  const optionalStations = stations.filter((s) => !s.required && !s.finish);
-  const finishStations = stations.filter((s) => s.finish);
-  const { done, total } = requiredSummary(requiredStations.map((s) => s.id));
+  const dayStations = { 1: [], 2: [], 3: [] };
+  const finishStations = [];
+  for (const s of stations) {
+    if (s.finish) finishStations.push(s);
+    else if (s.day) dayStations[s.day].push(s);
+  }
+
+  const requiredIds = stations.filter((s) => s.required && !s.finish).map((s) => s.id);
+  const { done, total } = requiredSummary(requiredIds);
 
   const intro = document.createElement("p");
   intro.className = "floor-intro";
@@ -79,13 +87,11 @@ function renderFloor() {
     }
   }
 
-  if (requiredStations.length) {
-    floorEl.appendChild(sectionHeading("Start Here"));
-    floorEl.appendChild(stationGrid(requiredStations));
-  }
-  if (optionalStations.length) {
-    floorEl.appendChild(sectionHeading("Explore"));
-    floorEl.appendChild(stationGrid(optionalStations));
+  for (const day of [1, 2, 3]) {
+    const list = dayStations[day];
+    if (!list.length) continue;
+    floorEl.appendChild(sectionHeading(`Day ${day}`));
+    floorEl.appendChild(stationGrid(list));
   }
   if (finishStations.length) {
     floorEl.appendChild(sectionHeading("Finish"));

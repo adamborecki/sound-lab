@@ -4,7 +4,13 @@ A museum-floor-style site for exploring acoustics and synthesis basics. No build
 
 ## Status
 
-Milestone 3+: shell, shared audio engine, progress tracking, eleven stations (Frequency, Amplitude, Wave Shape Gallery, Oscillator, Pitch × Loudness, Harmonics, Octave Machine, Decibels: FS vs SPL, Periodic vs. Aperiodic, Spectrum Analyzer, Pulse Wave), and a Finish & Submit page. Floor groups stations into Start Here / Explore / Finish and shows a baseline-complete banner once all required stations are done. Finish collects two reflections and generates a Canvas submission receipt with a SHA-256 completion checksum (Web Crypto), copyable to the clipboard with a manual-select fallback. Also fixed: double-tap-to-zoom on mobile, and Stop All Sound is now a real suspend/resume toggle instead of a one-way kill switch.
+Milestone 3+: shell, shared audio engine, progress tracking, eleven stations, and a Finish & Submit page. Floor groups stations by **Day 1 / Day 2 / Day 3** — matching the instructor's actual course sequence rather than an arbitrary required/optional split — with a single overall "baseline complete" banner once all required stations are done (Pitch × Loudness is currently the only deliberate bonus/optional station, tagged with a "Bonus" badge instead of being segregated into its own section).
+
+- Day 1 — Frequency, Amplitude, Decibels: FS vs SPL, Periodic vs. Aperiodic, Octave Machine, Pitch × Loudness (bonus)
+- Day 2 — Wave Shape Gallery, Oscillator, Pulse Wave
+- Day 3 — Harmonics, Spectrum Analyzer
+
+Finish collects two reflections and generates a Canvas submission receipt with a SHA-256 completion checksum (Web Crypto), copyable to the clipboard with a manual-select fallback. Also fixed: double-tap-to-zoom on mobile, and Stop All Sound is now a real suspend/resume toggle instead of a one-way kill switch.
 
 Colors-of-noise (spec section 8, a future 2D EQ station) and a 3D overtone-stack visual tied to Harmonics are both planned next — `drawSpectrum`/`logPositionForFreq` in `js/visualizers.js` and `createNoiseVoice`'s `color` option in `js/audio-engine.js` are written to be reused by both rather than being one-off.
 
@@ -24,7 +30,7 @@ Then open `http://localhost:8080/`.
 2. Create `stations/<id>.js` exporting `mount(container, { audioEngine, accent })`, which builds the station's DOM into `container` and returns an `unmount()` function that stops any voices/animation loops it started.
 3. Use `audioEngine.createVoice(...)` for oscillators and `drawWaveform(canvas, audioEngine.analyser, ...)` from [`js/visualizers.js`](js/visualizers.js) for the live waveform. Both handle click-free fades and animation-loop cleanup for you.
 4. The station only gets a live analyser once the visitor has pressed **Start Sound**; listen for the `soundlab:started` window event if you need to create audio lazily.
-5. Report engagement with `recordInteraction(id)` on meaningful control changes and call `markComplete(id)` once your station's own completion rule is met (see [`js/progress.js`](js/progress.js)) — keep the bar forgiving, it's engagement evidence, not a test. Set `required: true/false` in the registry entry to control whether it counts toward the baseline and which floor section it lands in.
+5. Report engagement with `recordInteraction(id)` on meaningful control changes and call `markComplete(id)` once your station's own completion rule is met (see [`js/progress.js`](js/progress.js)) — keep the bar forgiving, it's engagement evidence, not a test. Set `day: 1/2/3` to place it on the floor and `required: true/false` to control whether it counts toward the baseline banner (false gets a "Bonus" badge instead of being segregated into its own section).
 
 ## Structure
 
@@ -57,4 +63,4 @@ stations/
   finish.js           reflections + Canvas receipt + SHA-256 checksum
 ```
 
-A station entry can also set `finish: true` instead of `required`/optional — it renders in its own "Finish" floor section and is excluded from the baseline count (see `finish.js`).
+A station entry can also set `finish: true` instead of `day`/`required` — it renders in its own "Finish" floor section and is excluded from the baseline count (see `finish.js`).
