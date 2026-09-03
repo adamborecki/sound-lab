@@ -5,8 +5,11 @@ import { recordInteraction, markComplete } from "../js/progress.js";
 
 const STATION_ID = "periodic";
 const FIXED_HZ = 300;
-const MIN_WINDOW = 150; // samples — zoomed all the way in
-const MAX_WINDOW = 900; // samples — zoomed all the way out
+const MIN_WINDOW = 200; // samples — zoomed in: a couple of cycles, clean shape
+const MAX_WINDOW = 16000; // samples — zoomed out: dozens of cycles, reads as a blur
+// The shared analyser (used everywhere else) is sized for a handful of
+// cycles and can't hold a window this wide, so this station taps its own.
+const LOCAL_ANALYSER_FFT_SIZE = 32768;
 const COMPLETE_AFTER_INTERACTIONS = 6;
 
 const SOURCES = [
@@ -78,6 +81,7 @@ export function mount(container, { audioEngine, accent }) {
   }
 
   let voice = null;
+  let localAnalyser = null;
   let stopViz = null;
   let current = SOURCES[0];
   let windowSamples = MAX_WINDOW;
@@ -128,7 +132,11 @@ export function mount(container, { audioEngine, accent }) {
   function setZoom(pct, userInitiated = false) {
     const clamped = clamp(pct, 0, 100);
     zoomSlider.value = String(clamped);
-    windowSamples = Math.round(MAX_WINDOW - (clamped / 100) * (MAX_WINDOW - MIN_WINDOW));
+    // Log-interpolated: the range spans 80x (200 to 16000 samples), so a
+    // linear slider would spend nearly its whole travel at "very zoomed
+    // out" with all the actual zooming crammed into the last few percent.
+    const t = clamped / 100;
+    windowSamples = Math.round(MAX_WINDOW * Math.pow(MIN_WINDOW / MAX_WINDOW, t));
     updateZoomReadout();
     if (userInitiated) {
       interactionCount += 1;
@@ -142,7 +150,12 @@ export function mount(container, { audioEngine, accent }) {
   function setupAudio() {
     if (!audioEngine.isStarted || voice) return;
     voice = createVoiceFor(current);
-    stopViz = drawWaveform(canvas, audioEngine.analyser, {
+    // Tapped from the master chain (not any one voice) so it keeps working
+    // across source switches without needing to be rewired each time.
+    localAnalyser = audioEngine.ctx.createAnalyser();
+    localAnalyser.fftSize = LOCAL_ANALYSER_FFT_SIZE;
+    audioEngine.masterGain.connect(localAnalyser);
+    stopViz = drawWaveform(canvas, localAnalyser, {
       color: accent,
       windowSamples: () => windowSamples,
     });
@@ -162,5 +175,6 @@ export function mount(container, { audioEngine, accent }) {
     window.removeEventListener("soundlab:started", setupAudio);
     if (stopViz) stopViz();
     if (voice) voice.stop();
+    if (localAnalyser) audioEngine.masterGain.disconnect(localAnalyser);
   };
 }
