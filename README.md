@@ -16,6 +16,8 @@ Finish collects two reflections and generates a Canvas submission receipt with a
 
 Oscillator's Square waveform now has a Width control that morphs it into a rectangle wave — same Fourier technique as the standalone Pulse Wave station, shared via `js/pulse-wave.js`.
 
+Spectrum Analyzer now has Frequency (80 Hz – 4 kHz) and Amplitude controls for the tone sources; Frequency hides itself for the noise sources, which have no single fundamental to tune.
+
 ## Running locally
 
 Any static file server works, since the app uses ES modules (which browsers block over `file://`):

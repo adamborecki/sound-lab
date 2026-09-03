@@ -1,9 +1,14 @@
 import { drawSpectrum, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
+import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
 const STATION_ID = "spectrum";
-const FIXED_HZ = 220;
+const MIN_TONE_HZ = 80;
+const MAX_TONE_HZ = 4000;
+const DEFAULT_TONE_HZ = 220;
+const MAX_GAIN = 0.3;
+const DEFAULT_AMP = 70;
 const MIN_HZ = 20;
 const MAX_HZ = 20000;
 const LOCAL_ANALYSER_FFT_SIZE = 8192;
@@ -28,6 +33,21 @@ export function mount(container, { audioEngine, accent }) {
 
     <div class="wave-button-row" id="source-buttons"></div>
 
+    <div class="osc-control" id="spec-freq-control">
+      <div class="osc-control-label">Frequency</div>
+      <div class="big-readout" id="spec-freq-readout">220 Hz</div>
+      <input type="range" id="spec-freq-slider" class="big-slider"
+        min="${MIN_TONE_HZ}" max="${MAX_TONE_HZ}" value="${DEFAULT_TONE_HZ}" step="1"
+        aria-label="Frequency in Hertz" />
+    </div>
+
+    <div class="osc-control">
+      <div class="osc-control-label">Amplitude</div>
+      <div class="big-readout" id="spec-amp-readout">${DEFAULT_AMP}%</div>
+      <input type="range" id="spec-amp-slider" class="big-slider"
+        min="0" max="100" value="${DEFAULT_AMP}" step="1" aria-label="Amplitude percent" />
+    </div>
+
     <canvas class="spectrum-canvas" id="spectrum-canvas" width="600" height="220"
       role="img" aria-label="Live frequency spectrum of the selected sound"></canvas>
 
@@ -35,6 +55,11 @@ export function mount(container, { audioEngine, accent }) {
   `;
 
   const buttonRow = container.querySelector("#source-buttons");
+  const freqControl = container.querySelector("#spec-freq-control");
+  const freqReadout = container.querySelector("#spec-freq-readout");
+  const freqSlider = container.querySelector("#spec-freq-slider");
+  const ampReadout = container.querySelector("#spec-amp-readout");
+  const ampSlider = container.querySelector("#spec-amp-slider");
   const canvas = container.querySelector("#spectrum-canvas");
   const axisEl = container.querySelector("#spectrum-axis");
 
@@ -60,17 +85,23 @@ export function mount(container, { audioEngine, accent }) {
   let localAnalyser = null;
   let stopViz = null;
   let current = SOURCES[0];
+  let freq = DEFAULT_TONE_HZ;
+  let amp = DEFAULT_AMP;
   let interactionCount = 0;
   const triedSources = new Set();
 
   function applySelection(src) {
     current = src;
     for (const [id, btn] of buttons) btn.classList.toggle("active", id === src.id);
+    // Noise has no fundamental frequency to tune — hide the control rather
+    // than leave it visible but meaningless for those sources.
+    freqControl.hidden = !!src.color;
   }
 
   function createVoiceFor(src) {
-    if (src.color) return audioEngine.createNoiseVoice({ gain: 0.2, color: src.color });
-    return audioEngine.createVoice({ freq: FIXED_HZ, type: src.id, gain: 0.25 });
+    const gain = (amp / 100) * MAX_GAIN;
+    if (src.color) return audioEngine.createNoiseVoice({ gain, color: src.color });
+    return audioEngine.createVoice({ freq, type: src.id, gain });
   }
 
   function maybeComplete() {
@@ -91,6 +122,33 @@ export function mount(container, { audioEngine, accent }) {
     recordInteraction(STATION_ID);
     maybeComplete();
   }
+
+  function setFreq(hz, userInitiated = false) {
+    freq = clamp(Math.round(hz), MIN_TONE_HZ, MAX_TONE_HZ);
+    freqSlider.value = String(freq);
+    freqReadout.textContent = formatHz(freq);
+    if (voice && voice.setFreq) voice.setFreq(freq);
+    if (userInitiated) {
+      interactionCount += 1;
+      recordInteraction(STATION_ID);
+      maybeComplete();
+    }
+  }
+
+  function setAmp(pct, userInitiated = false) {
+    amp = clamp(Math.round(pct), 0, 100);
+    ampSlider.value = String(amp);
+    ampReadout.textContent = `${amp}%`;
+    if (voice) voice.setGain((amp / 100) * MAX_GAIN);
+    if (userInitiated) {
+      interactionCount += 1;
+      recordInteraction(STATION_ID);
+      maybeComplete();
+    }
+  }
+
+  freqSlider.addEventListener("input", () => setFreq(Number(freqSlider.value), true));
+  ampSlider.addEventListener("input", () => setAmp(Number(ampSlider.value), true));
 
   function setupAudio() {
     if (!audioEngine.isStarted || voice) return;
