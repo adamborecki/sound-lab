@@ -9,10 +9,14 @@ const MIN_HZ = 80;
 const MAX_HZ = 2000;
 const MAX_GAIN = 0.4;
 const WAVE_TYPES = ["sine", "triangle", "square", "sawtooth"];
+// "square" stays the internal id (it's the real Web Audio OscillatorType,
+// and what the width control checks against) — only the button label
+// reads "Pulse", since once width is adjustable "square" undersells it.
+const WAVE_LABELS = { sine: "Sine", triangle: "Triangle", square: "Pulse", sawtooth: "Sawtooth" };
 
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
-    <p class="prompt">An oscillator is the thing making the wave in the first place. Change it and the sound changes. Pick Square to unlock a width control — squeeze it into a rectangle.</p>
+    <p class="prompt">An oscillator is the thing making the wave in the first place. Change it and the sound changes. Pick Pulse to unlock a width control — squeeze it into a rectangle.</p>
 
     <div class="osc-diagram" aria-hidden="true">
       <div class="osc-box">Oscillator</div>
@@ -33,7 +37,7 @@ export function mount(container, { audioEngine, accent }) {
     </div>
 
     <div class="osc-control" id="osc-width-control" hidden>
-      <div class="osc-control-label">Width (square → rectangle)</div>
+      <div class="osc-control-label">Width (pulse → rectangle)</div>
       <div class="big-readout" id="osc-width-readout">50%</div>
       <input type="range" id="osc-width-slider" class="big-slider"
         min="${MIN_DUTY}" max="${MAX_DUTY}" value="50" step="1"
@@ -66,7 +70,7 @@ export function mount(container, { audioEngine, accent }) {
     const btn = document.createElement("button");
     btn.className = "wave-btn";
     btn.type = "button";
-    btn.innerHTML = `${waveIconSvg(type)}<span>${type[0].toUpperCase()}${type.slice(1)}</span>`;
+    btn.innerHTML = `${waveIconSvg(type)}<span>${WAVE_LABELS[type]}</span>`;
     btn.addEventListener("click", () => setWave(type, true));
     waveButtons.appendChild(btn);
     buttons.set(type, btn);
