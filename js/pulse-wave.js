@@ -17,5 +17,15 @@ export function buildPulseWave(ctx, dutyPercent) {
   for (let n = 1; n <= HARMONIC_COUNT; n++) {
     real[n] = (4 / (n * Math.PI)) * Math.sin(n * Math.PI * duty);
   }
-  return ctx.createPeriodicWave(real, imag);
+  // These coefficients are already the exact ones for a true ±1 bipolar
+  // pulse — createPeriodicWave's default auto-normalization would instead
+  // rescale to the peak of our *finite*, 40-harmonic approximation, which
+  // includes a Gibbs-phenomenon overshoot spike whose size shifts with
+  // duty cycle. Normalizing to that shifting peak was dragging the whole
+  // wave's visible/audible level along with it — the shape changed
+  // correctly, but so did the height, which wasn't the point. Disabling
+  // normalization keeps the flat body at a consistent level throughout;
+  // the overshoot is left to briefly exceed ±1 by a few percent, same as
+  // any band-limited square/pulse approximation.
+  return ctx.createPeriodicWave(real, imag, { disableNormalization: true });
 }
