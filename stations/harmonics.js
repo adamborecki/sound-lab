@@ -1,4 +1,11 @@
-import { drawWaveform, drawSpectrum, drawSpectrogram, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
+import {
+  drawWaveform,
+  drawSpectrum,
+  drawSpectrogram,
+  drawIdleMessage,
+  logPositionForFreq,
+  buildSpectrogramFreqAxis,
+} from "../js/visualizers.js";
 import { recordInteraction, markComplete, recordCheck } from "../js/progress.js";
 
 const STATION_ID = "harmonics";
@@ -50,9 +57,11 @@ export function mount(container, { audioEngine, accent }) {
     <div class="spectrum-axis" id="harmonics-spectrum-axis"></div>
 
     <div class="osc-control-label">Spectrogram (frequency vs. time)</div>
-    <canvas class="spectrum-canvas" id="harmonics-spectrogram-canvas" width="600" height="220"
-      role="img" aria-label="Scrolling spectrogram of the combined harmonics"></canvas>
-    <div class="spectrum-axis" id="harmonics-spectrogram-axis"></div>
+    <div class="spectrogram-row">
+      <div class="spectrogram-freq-axis" id="harmonics-spectrogram-axis"></div>
+      <canvas class="spectrum-canvas" id="harmonics-spectrogram-canvas" width="600" height="220"
+        role="img" aria-label="Scrolling spectrogram of the combined harmonics — frequency on the vertical axis, time on the horizontal axis"></canvas>
+    </div>
   `;
 
   const predictBox = container.querySelector("#predict-box");
@@ -64,14 +73,13 @@ export function mount(container, { audioEngine, accent }) {
   const spectrogramCanvas = container.querySelector("#harmonics-spectrogram-canvas");
   const spectrogramAxisEl = container.querySelector("#harmonics-spectrogram-axis");
 
-  for (const axisEl of [spectrumAxisEl, spectrogramAxisEl]) {
-    for (const hz of AXIS_LABELS) {
-      const tick = document.createElement("span");
-      tick.textContent = `${formatHzLabel(hz)} Hz`;
-      tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
-      axisEl.appendChild(tick);
-    }
+  for (const hz of AXIS_LABELS) {
+    const tick = document.createElement("span");
+    tick.textContent = `${formatHzLabel(hz)} Hz`;
+    tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
+    spectrumAxisEl.appendChild(tick);
   }
+  buildSpectrogramFreqAxis(spectrogramAxisEl, AXIS_LABELS, MIN_HZ_AXIS, MAX_HZ_AXIS);
 
   predictBox.querySelectorAll("[data-guess]").forEach((btn) => {
     btn.addEventListener("click", () => {

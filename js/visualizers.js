@@ -131,6 +131,23 @@ export function logPositionForFreq(freq, minHz, maxHz) {
   return clamp(t, 0, 1);
 }
 
+// Builds vertical frequency-axis tick labels for a drawSpectrogram canvas.
+// A spectrogram's horizontal axis is time (it scrolls), not frequency —
+// frequency is vertical (top = highest, per drawSpectrogram's own mapping)
+// — so this is deliberately not just logPositionForFreq reused sideways;
+// mixing the two up mislabels a time axis with Hz values.
+export function buildSpectrogramFreqAxis(axisEl, labels, minHz, maxHz) {
+  axisEl.innerHTML = "";
+  for (const hz of labels) {
+    const topPct = (1 - logPositionForFreq(hz, minHz, maxHz)) * 100;
+    const tick = document.createElement("span");
+    tick.textContent = hz >= 1000 ? `${hz / 1000}k Hz` : `${hz} Hz`;
+    tick.style.top = `${topPct}%`;
+    if (hz <= minHz) tick.style.transform = "translateY(-100%)";
+    axisEl.appendChild(tick);
+  }
+}
+
 // Draws a live frequency-domain bar chart from an AnalyserNode (magnitude
 // per bin, log-scaled x-axis so octaves get equal screen space — the way
 // real spectrum analyzers read). Same stop-function contract as

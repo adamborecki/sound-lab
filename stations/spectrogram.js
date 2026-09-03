@@ -1,4 +1,4 @@
-import { drawSpectrogram, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
+import { drawSpectrogram, drawIdleMessage, buildSpectrogramFreqAxis } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
@@ -21,10 +21,6 @@ const SOURCES = [
   { id: "pink", label: "Pink Noise", icon: "noise", color: "pink" },
 ];
 
-function formatHzLabel(hz) {
-  return hz >= 1000 ? `${hz / 1000}k` : `${hz}`;
-}
-
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
     <p class="prompt">A spectrogram is frequency (up/down) vs. time (left → right), with loudness shown as brightness. Sine sweeps a single line; square, triangle, and sawtooth each sweep a whole stack of harmonics together.</p>
@@ -37,9 +33,11 @@ export function mount(container, { audioEngine, accent }) {
         aria-label="Fundamental frequency in Hertz" />
     </div>
 
-    <canvas class="spectrum-canvas" id="sg-canvas" width="600" height="240"
-      role="img" aria-label="Scrolling spectrogram — frequency vs time, brightness is loudness"></canvas>
-    <div class="spectrum-axis" id="sg-axis"></div>
+    <div class="spectrogram-row">
+      <div class="spectrogram-freq-axis" id="sg-axis"></div>
+      <canvas class="spectrum-canvas" id="sg-canvas" width="600" height="240"
+        role="img" aria-label="Scrolling spectrogram — frequency on the vertical axis, time on the horizontal axis, brightness is loudness"></canvas>
+    </div>
   `;
 
   const sourceRow = container.querySelector("#sg-sources");
@@ -49,12 +47,7 @@ export function mount(container, { audioEngine, accent }) {
   const canvas = container.querySelector("#sg-canvas");
   const axisEl = container.querySelector("#sg-axis");
 
-  for (const hz of AXIS_LABELS) {
-    const tick = document.createElement("span");
-    tick.textContent = `${formatHzLabel(hz)} Hz`;
-    tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
-    axisEl.appendChild(tick);
-  }
+  buildSpectrogramFreqAxis(axisEl, AXIS_LABELS, MIN_HZ_AXIS, MAX_HZ_AXIS);
 
   const buttons = new Map();
   for (const s of SOURCES) {

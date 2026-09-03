@@ -1,4 +1,11 @@
-import { drawWaveform, drawSpectrum, drawSpectrogram, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
+import {
+  drawWaveform,
+  drawSpectrum,
+  drawSpectrogram,
+  drawIdleMessage,
+  logPositionForFreq,
+  buildSpectrogramFreqAxis,
+} from "../js/visualizers.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
 const STATION_ID = "fft";
@@ -45,9 +52,11 @@ export function mount(container, { audioEngine, accent }) {
 
     <div class="fft-section">
       <div class="osc-control-label">Spectrogram (frequency vs. time)</div>
-      <canvas class="spectrum-canvas" id="fft-spectrogram-canvas" width="600" height="220"
-        role="img" aria-label="Scrolling spectrogram of the combined harmonics"></canvas>
-      <div class="spectrum-axis" id="fft-spectrogram-axis"></div>
+      <div class="spectrogram-row">
+        <div class="spectrogram-freq-axis" id="fft-spectrogram-axis"></div>
+        <canvas class="spectrum-canvas" id="fft-spectrogram-canvas" width="600" height="220"
+          role="img" aria-label="Scrolling spectrogram of the combined harmonics — frequency on the vertical axis, time on the horizontal axis"></canvas>
+      </div>
       <p class="fft-caption">
         Same idea, seen a third way: the spectrum above is one instant frozen in time. Here it keeps
         scrolling — each harmonic is a horizontal line, its brightness is loudness, and switching
@@ -63,14 +72,13 @@ export function mount(container, { audioEngine, accent }) {
   const spectrogramCanvas = container.querySelector("#fft-spectrogram-canvas");
   const spectrogramAxisEl = container.querySelector("#fft-spectrogram-axis");
 
-  for (const el of [axisEl, spectrogramAxisEl]) {
-    for (const hz of AXIS_LABELS) {
-      const tick = document.createElement("span");
-      tick.textContent = `${formatHzLabel(hz)} Hz`;
-      tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
-      el.appendChild(tick);
-    }
+  for (const hz of AXIS_LABELS) {
+    const tick = document.createElement("span");
+    tick.textContent = `${formatHzLabel(hz)} Hz`;
+    tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
+    axisEl.appendChild(tick);
   }
+  buildSpectrogramFreqAxis(spectrogramAxisEl, AXIS_LABELS, MIN_HZ_AXIS, MAX_HZ_AXIS);
 
   const buttons = new Map();
   for (const r of RECIPES) {

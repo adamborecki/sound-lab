@@ -999,6 +999,36 @@
   transform: translateX(-100%);
 }
 
+/* A spectrogram's frequency axis is vertical (its horizontal axis is
+   time, which scrolls and isn't calibrated with fixed labels) — this is
+   deliberately a different layout from .spectrum-axis above, not a
+   sideways reuse of it. */
+.spectrogram-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.spectrogram-row .spectrum-canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.spectrogram-freq-axis {
+  position: relative;
+  flex: 0 0 3.4rem;
+}
+
+.spectrogram-freq-axis span {
+  position: absolute;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .pulse-section {
   margin-top: 1.5rem;
 }
