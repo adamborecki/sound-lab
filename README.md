@@ -4,7 +4,7 @@ A museum-floor-style site for exploring acoustics and synthesis basics. No build
 
 ## Status
 
-Milestone 3+: shell, shared audio engine, progress tracking, ten stations (Frequency, Amplitude, Wave Shape Gallery, Oscillator, Pitch × Loudness, Harmonics, Octave Machine, Decibels: FS vs SPL, Periodic vs. Aperiodic, Spectrum Analyzer), and a Finish & Submit page. Floor groups stations into Start Here / Explore / Finish and shows a baseline-complete banner once all required stations are done. Finish collects two reflections and generates a Canvas submission receipt with a SHA-256 completion checksum (Web Crypto), copyable to the clipboard with a manual-select fallback. Also fixed: double-tap-to-zoom on mobile, and Stop All Sound is now a real suspend/resume toggle instead of a one-way kill switch.
+Milestone 3+: shell, shared audio engine, progress tracking, eleven stations (Frequency, Amplitude, Wave Shape Gallery, Oscillator, Pitch × Loudness, Harmonics, Octave Machine, Decibels: FS vs SPL, Periodic vs. Aperiodic, Spectrum Analyzer, Pulse Wave), and a Finish & Submit page. Floor groups stations into Start Here / Explore / Finish and shows a baseline-complete banner once all required stations are done. Finish collects two reflections and generates a Canvas submission receipt with a SHA-256 completion checksum (Web Crypto), copyable to the clipboard with a manual-select fallback. Also fixed: double-tap-to-zoom on mobile, and Stop All Sound is now a real suspend/resume toggle instead of a one-way kill switch.
 
 Colors-of-noise (spec section 8, a future 2D EQ station) and a 3D overtone-stack visual tied to Harmonics are both planned next — `drawSpectrum`/`logPositionForFreq` in `js/visualizers.js` and `createNoiseVoice`'s `color` option in `js/audio-engine.js` are written to be reused by both rather than being one-off.
 
@@ -53,6 +53,7 @@ stations/
   decibels.js         live dBFS meter + static dB SPL reference chart
   periodic.js         zoomable waveform: periodic vs. aperiodic (noise)
   spectrum.js         live frequency-domain view of the same sources
+  pulse.js            variable-duty-cycle pulse wave, waveform + spectrum
   finish.js           reflections + Canvas receipt + SHA-256 checksum
 ```
 

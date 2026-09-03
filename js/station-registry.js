@@ -92,6 +92,15 @@ export const stations = [
     accent: "#FF6B9D",
   },
   {
+    id: "pulse",
+    title: "Pulse Wave",
+    category: "timbre",
+    purpose: "Same pitch, squeeze the pulse — different timbre.",
+    required: false,
+    module: "../stations/pulse.js",
+    accent: "#FFA13C",
+  },
+  {
     id: "finish",
     title: "Finish & Submit",
     category: "finish",

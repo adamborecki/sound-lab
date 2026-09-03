@@ -1021,3 +1021,11 @@
 .spectrum-axis span:last-child {
   transform: translateX(-100%);
 }
+
+.pulse-section {
+  margin-top: 1.5rem;
+}
+
+.pulse-section:first-of-type {
+  margin-top: 0.5rem;
+}
