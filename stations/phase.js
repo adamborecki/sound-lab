@@ -2,48 +2,48 @@ import { drawWaveform, drawIdleMessage } from "../js/visualizers.js";
 import { clamp } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
-const STATION_ID = "phase-polarity";
+const STATION_ID = "phase";
 const FIXED_HZ = 220;
 const FADE_SECONDS = 0.02;
 const COMPLETE_AFTER_INTERACTIONS = 6;
 const PRESETS = [
-  { deg: 0, label: "0° (in phase)" },
+  { deg: 0, label: "0°" },
   { deg: 90, label: "90°" },
-  { deg: 180, label: "180° (inverted)" },
+  { deg: 180, label: "180°" },
   { deg: 270, label: "270°" },
 ];
 
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
-    <p class="prompt">Two identical tones. Slide B's phase and watch what the sum does — 0° stacks them up, 180° cancels them out.</p>
+    <p class="prompt">Two identical tones. Slide B's timing and watch what the sum does — 0° stacks them up, 180° cancels them out. Nothing here changes B's shape or size, only when it starts.</p>
 
-    <div class="big-readout" id="pp-readout">0°</div>
-    <input type="range" id="pp-slider" class="big-slider" min="0" max="360" value="0" step="1"
+    <div class="big-readout" id="ph-readout">0°</div>
+    <input type="range" id="ph-slider" class="big-slider" min="0" max="360" value="0" step="1"
       aria-label="Phase offset of wave B, in degrees" />
 
-    <div class="preset-row" id="pp-presets">
+    <div class="preset-row" id="ph-presets">
       ${PRESETS.map((p) => `<button class="chip" type="button" data-deg="${p.deg}">${p.label}</button>`).join("")}
     </div>
 
     <div class="pp-section">
       <div class="osc-control-label pp-label-a">Wave A</div>
-      <canvas class="waveform-canvas pp-canvas" id="pp-canvas-a" width="600" height="90" role="img" aria-label="Wave A"></canvas>
+      <canvas class="waveform-canvas pp-canvas" id="ph-canvas-a" width="600" height="90" role="img" aria-label="Wave A"></canvas>
     </div>
     <div class="pp-section">
       <div class="osc-control-label pp-label-b">Wave B (phase-shifted)</div>
-      <canvas class="waveform-canvas pp-canvas" id="pp-canvas-b" width="600" height="90" role="img" aria-label="Wave B"></canvas>
+      <canvas class="waveform-canvas pp-canvas" id="ph-canvas-b" width="600" height="90" role="img" aria-label="Wave B"></canvas>
     </div>
     <div class="pp-section">
       <div class="osc-control-label">Sum (what you hear)</div>
-      <canvas class="waveform-canvas pp-canvas" id="pp-canvas-sum" width="600" height="120" role="img" aria-label="Sum of A and B"></canvas>
+      <canvas class="waveform-canvas pp-canvas" id="ph-canvas-sum" width="600" height="120" role="img" aria-label="Sum of A and B"></canvas>
     </div>
   `;
 
-  const readout = container.querySelector("#pp-readout");
-  const slider = container.querySelector("#pp-slider");
-  const canvasA = container.querySelector("#pp-canvas-a");
-  const canvasB = container.querySelector("#pp-canvas-b");
-  const canvasSum = container.querySelector("#pp-canvas-sum");
+  const readout = container.querySelector("#ph-readout");
+  const slider = container.querySelector("#ph-slider");
+  const canvasA = container.querySelector("#ph-canvas-a");
+  const canvasB = container.querySelector("#ph-canvas-b");
+  const canvasSum = container.querySelector("#ph-canvas-sum");
 
   let ctx = null;
   let oscA = null;
@@ -75,7 +75,7 @@ export function mount(container, { audioEngine, accent }) {
   }
 
   slider.addEventListener("input", () => setPhase(Number(slider.value), true));
-  container.querySelector("#pp-presets").addEventListener("click", (e) => {
+  container.querySelector("#ph-presets").addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-deg]");
     if (!btn) return;
     setPhase(Number(btn.dataset.deg), true);
@@ -119,11 +119,10 @@ export function mount(container, { audioEngine, accent }) {
 
     // A/B are tapped pre-master (raw 0.2 gain); Sum is tapped post-master
     // (the shared analyser), so at most 0.4 * masterGain(0.5) = 0.2. Both
-    // need boosting to read clearly on a -1..1 canvas.
-    // All three canvases must trigger off the SAME reference point (A's),
-    // or each independently re-syncing to its own zero-crossing would
-    // silently erase the phase relationship this whole station exists to
-    // show — B's whole point is that it does NOT line up with A.
+    // need boosting to read clearly on a -1..1 canvas. All three canvases
+    // trigger off the SAME reference point (A's), or each independently
+    // re-syncing to its own zero-crossing would erase the phase
+    // relationship this station exists to show.
     stopVizA = drawWaveform(canvasA, analyserA, { color: "#7CE0FF", ampScale: 4 });
     stopVizB = drawWaveform(canvasB, analyserB, {
       color: "#FF9B7C",

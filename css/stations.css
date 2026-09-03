@@ -1131,6 +1131,44 @@
   color: #ff9b7c;
 }
 
+/* -------- polarity -------- */
+
+.polarity-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 auto 1rem;
+}
+
+.polarity-icon {
+  display: inline-block;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 0.4s ease;
+}
+
+.polarity-icon.flipped {
+  transform: rotate(180deg);
+}
+
+.polarity-state {
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin: 0 0 1.5rem;
+}
+
+.polarity-state.inverted {
+  color: var(--accent, var(--accent-default));
+}
+
+.polarity-note {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin-top: 1.25rem;
+}
+
 /* -------- beating -------- */
 
 .beat-freqs {
