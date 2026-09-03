@@ -2,6 +2,7 @@ import { drawWaveform, drawIdleMessage } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
+import { buildPulseWave, MIN_DUTY, MAX_DUTY } from "../js/pulse-wave.js";
 
 const STATION_ID = "oscillator";
 const MIN_HZ = 80;
@@ -11,7 +12,7 @@ const WAVE_TYPES = ["sine", "triangle", "square", "sawtooth"];
 
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
-    <p class="prompt">An oscillator is the thing making the wave in the first place. Change it and the sound changes.</p>
+    <p class="prompt">An oscillator is the thing making the wave in the first place. Change it and the sound changes. Pick Square to unlock a width control — squeeze it into a rectangle.</p>
 
     <div class="osc-diagram" aria-hidden="true">
       <div class="osc-box">Oscillator</div>
@@ -31,6 +32,14 @@ export function mount(container, { audioEngine, accent }) {
       <div class="wave-button-row" id="osc-wave-buttons"></div>
     </div>
 
+    <div class="osc-control" id="osc-width-control" hidden>
+      <div class="osc-control-label">Width (square → rectangle)</div>
+      <div class="big-readout" id="osc-width-readout">50%</div>
+      <input type="range" id="osc-width-slider" class="big-slider"
+        min="${MIN_DUTY}" max="${MAX_DUTY}" value="50" step="1"
+        aria-label="Pulse width — percent of each cycle spent high" />
+    </div>
+
     <div class="osc-control">
       <div class="osc-control-label">Amplitude</div>
       <div class="big-readout" id="osc-amp-readout">60%</div>
@@ -45,6 +54,9 @@ export function mount(container, { audioEngine, accent }) {
   const freqReadout = container.querySelector("#osc-freq-readout");
   const freqSlider = container.querySelector("#osc-freq-slider");
   const waveButtons = container.querySelector("#osc-wave-buttons");
+  const widthControl = container.querySelector("#osc-width-control");
+  const widthReadout = container.querySelector("#osc-width-readout");
+  const widthSlider = container.querySelector("#osc-width-slider");
   const ampReadout = container.querySelector("#osc-amp-readout");
   const ampSlider = container.querySelector("#osc-amp-slider");
   const canvas = container.querySelector("#osc-canvas");
@@ -65,7 +77,17 @@ export function mount(container, { audioEngine, accent }) {
   let freq = 440;
   let waveType = "sine";
   let amp = 60;
+  let width = 50;
   const touched = { freq: false, wave: false, amp: false };
+
+  function applyWave() {
+    if (!voice) return;
+    if (waveType === "square") {
+      voice.setPeriodicWave(buildPulseWave(audioEngine.ctx, width));
+    } else {
+      voice.setType(waveType);
+    }
+  }
 
   function maybeComplete() {
     recordInteraction(STATION_ID);
@@ -86,10 +108,21 @@ export function mount(container, { audioEngine, accent }) {
   function setWave(type, userInitiated = false) {
     waveType = type;
     for (const [t, btn] of buttons) btn.classList.toggle("active", t === type);
-    if (voice) voice.setType(type);
+    widthControl.hidden = type !== "square";
+    applyWave();
     if (userInitiated) {
       touched.wave = true;
       maybeComplete();
+    }
+  }
+
+  function setWidth(pct, userInitiated = false) {
+    width = clamp(pct, MIN_DUTY, MAX_DUTY);
+    widthSlider.value = String(width);
+    widthReadout.textContent = `${width}%`;
+    applyWave();
+    if (userInitiated) {
+      recordInteraction(STATION_ID);
     }
   }
 
@@ -106,6 +139,7 @@ export function mount(container, { audioEngine, accent }) {
 
   freqSlider.addEventListener("input", () => setFreq(Number(freqSlider.value), true));
   ampSlider.addEventListener("input", () => setAmp(Number(ampSlider.value), true));
+  widthSlider.addEventListener("input", () => setWidth(Number(widthSlider.value), true));
 
   function setupAudio() {
     if (!audioEngine.isStarted || voice) return;
@@ -114,6 +148,7 @@ export function mount(container, { audioEngine, accent }) {
       type: waveType,
       gain: (amp / 100) * MAX_GAIN,
     });
+    applyWave();
     stopViz = drawWaveform(canvas, audioEngine.analyser, { color: accent });
   }
 

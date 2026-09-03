@@ -175,6 +175,76 @@ export function drawSpectrum(canvas, analyser, options = {}) {
   };
 }
 
+function hexToRgb(hex) {
+  const clean = hex.replace("#", "");
+  const n = parseInt(clean, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+// Scrolling frequency-vs-time waterfall (a real spectrogram): each frame
+// shifts the existing image one column left and draws a fresh column at
+// the right, colored by amplitude at each log-scaled frequency. Same
+// stop-function contract as drawWaveform/drawSpectrum.
+export function drawSpectrogram(canvas, analyser, options = {}) {
+  const ctx = canvas.getContext("2d");
+  const { r, g, b } = hexToRgb(options.color || "#7CE0FF");
+  const minHz = options.minHz || 20;
+  const maxHz = options.maxHz || Math.min(20000, analyser.context.sampleRate / 2);
+  const fps = options.fps || 20;
+  const frameGap = 1000 / fps;
+  let raf = null;
+  let stopped = false;
+  let lastDraw = 0;
+  let initialized = false;
+
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  const binHz = analyser.context.sampleRate / analyser.fftSize;
+
+  function render(t) {
+    if (stopped) return;
+    if (t - lastDraw < frameGap) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
+    lastDraw = t;
+
+    const dpr = fitCanvasToDisplaySize(canvas);
+    const w = canvas.width;
+    const h = canvas.height;
+
+    if (!initialized) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, w, h);
+      initialized = true;
+    }
+
+    // Shift everything left by exactly one physical pixel (source = canvas
+    // itself), then draw the newest spectrum slice into that same
+    // one-pixel-wide column — the shift and the new column must match
+    // widths exactly or the image smears at high pixel-density displays.
+    ctx.drawImage(canvas, 1, 0, w - 1, h, 0, 0, w - 1, h);
+
+    analyser.getByteFrequencyData(data);
+    for (let y = 0; y < h; y++) {
+      const frac = 1 - y / h; // top of canvas = highest frequency
+      const freq = minHz * Math.pow(maxHz / minHz, frac);
+      const binIndex = Math.min(data.length - 1, Math.round(freq / binHz));
+      const amp = data[binIndex] / 255;
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${amp})`;
+      ctx.fillRect(w - 1, y, 1, 1);
+    }
+
+    raf = requestAnimationFrame(render);
+  }
+
+  raf = requestAnimationFrame(render);
+
+  return function stop() {
+    stopped = true;
+    if (raf) cancelAnimationFrame(raf);
+  };
+}
+
 // Renders a static "not playing yet" waveform placeholder, no animation loop.
 export function drawIdleMessage(canvas, message) {
   const ctx = canvas.getContext("2d");

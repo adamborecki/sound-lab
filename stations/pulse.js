@@ -6,12 +6,10 @@ import {
 } from "../js/visualizers.js";
 import { clamp } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
+import { buildPulseWave, MIN_DUTY, MAX_DUTY } from "../js/pulse-wave.js";
 
 const STATION_ID = "pulse";
 const FIXED_HZ = 150;
-const HARMONIC_COUNT = 40;
-const MIN_DUTY = 2;
-const MAX_DUTY = 98;
 const MIN_HZ_AXIS = 20;
 const MAX_HZ_AXIS = 20000;
 const LOCAL_ANALYSER_FFT_SIZE = 8192;
@@ -20,21 +18,6 @@ const AXIS_LABELS = [20, 100, 1000, 10000];
 
 function formatHzLabel(hz) {
   return hz >= 1000 ? `${hz / 1000}k` : `${hz}`;
-}
-
-// A pulse wave centered at t=0 is an even function, so it's built from pure
-// cosine terms — real[] rather than the imag[] (sine) terms Harmonics uses.
-// Standard rectangular-pulse Fourier series: the nth harmonic's amplitude
-// is (4/nπ)·sin(nπ·duty). At duty=0.5 this collapses to a square wave's
-// odd-harmonics-only, 1/n-falloff spectrum.
-function buildPulseWave(ctx, dutyPercent) {
-  const duty = dutyPercent / 100;
-  const real = new Float32Array(HARMONIC_COUNT + 1);
-  const imag = new Float32Array(HARMONIC_COUNT + 1);
-  for (let n = 1; n <= HARMONIC_COUNT; n++) {
-    real[n] = (4 / (n * Math.PI)) * Math.sin(n * Math.PI * duty);
-  }
-  return ctx.createPeriodicWave(real, imag);
 }
 
 export function mount(container, { audioEngine, accent }) {

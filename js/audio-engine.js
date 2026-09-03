@@ -102,8 +102,18 @@ class AudioEngine {
   // Same voice-with-fades pattern as createVoice, but backed by a looping
   // buffer of random samples instead of an oscillator — for aperiodic/noise
   // examples that don't fit the oscillator API (no frequency, no periodic
-  // wave). color "white" (flat spectrum) or "pink" (Paul Kellet's economy
-  // filter — equal energy per octave, so it leans darker/duller than white).
+  // wave).
+  //
+  // color: "white" (flat spectrum), "pink" (Paul Kellet's economy filter,
+  // ~-3dB/octave), "red"/"brown" (a leaky integrator of white noise, a
+  // random walk — steeper falloff than pink, ~-6dB/octave), "blue" (first
+  // difference of white noise — rising spectrum, roughly the inverse of
+  // pink), or "violet" (second difference — rising faster than blue, the
+  // inverse of red). Blue/violet are simple differencing approximations,
+  // not precisely calibrated to their nominal dB/octave slopes, but the
+  // relative ordering (white flattest → violet steepest-rising, red
+  // steepest-falling) is what actually matters for comparing them by ear
+  // and on the Spectrum Analyzer.
   createNoiseVoice({ gain = 0.2, color = "white" } = {}) {
     if (!this.ctx) throw new Error("AudioEngine not started");
     const bufferSeconds = 2;
@@ -113,6 +123,7 @@ class AudioEngine {
       this.ctx.sampleRate
     );
     const data = buffer.getChannelData(0);
+
     if (color === "pink") {
       let b0 = 0;
       let b1 = 0;
@@ -122,11 +133,48 @@ class AudioEngine {
         b0 = 0.99765 * b0 + white * 0.099046;
         b1 = 0.963 * b1 + white * 0.2965164;
         b2 = 0.57 * b2 + white * 1.0526913;
-        const pink = (b0 + b1 + b2 + white * 0.1848) * 0.11;
-        data[i] = Math.max(-1, Math.min(1, pink));
+        data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.11;
+      }
+    } else if (color === "red" || color === "brown") {
+      let acc = 0;
+      for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        acc = acc * 0.98 + white * 0.02;
+        data[i] = acc;
+      }
+    } else if (color === "blue") {
+      let prev = 0;
+      for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        data[i] = white - prev;
+        prev = white;
+      }
+    } else if (color === "violet") {
+      let prev1 = 0;
+      let prev2 = 0;
+      for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        const d1 = white - prev1;
+        data[i] = d1 - (prev1 - prev2);
+        prev2 = prev1;
+        prev1 = white;
       }
     } else {
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    }
+
+    // Different generation methods land at very different natural
+    // amplitudes (a leaky integrator drifts, differencing nearly cancels)
+    // — peak-normalize so every color starts from a comparable loudness
+    // and the station's own gain control means what it says.
+    let peak = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i]);
+      if (v > peak) peak = v;
+    }
+    if (peak > 0) {
+      const scale = 0.9 / peak;
+      for (let i = 0; i < data.length; i++) data[i] *= scale;
     }
 
     const src = this.ctx.createBufferSource();
