@@ -20,6 +20,8 @@ Spectrum Analyzer now has Frequency (80 Hz – 4 kHz) and Amplitude controls for
 
 Spectrogram now sweeps Sine, Triangle, Square, and Sawtooth (alongside White/Pink Noise) so a visitor can see a sine as a single moving line versus the others' harmonic stacks (odd-only for triangle/square, full series for sawtooth) all sweeping together. Also fixed a rendering bug where the newest scrolling column blended onto the previous frame's leftover pixels instead of starting from black, causing swept tones to leave stale trails and noise sources to smear into a solid blob.
 
+Harmonics now adds a Spectrum and a Spectrogram below its waveform, so toggling partials shows the same change three ways at once. FFT's old "unroll the overtones" 3D view is gone, replaced with a Spectrogram — the same frequency-vs-time visualization now recurs across Harmonics, FFT, Spectrum Analyzer, and Spectrogram itself, reinforcing one shared visual language for "spectrum = one instant, spectrogram = that instant scrolling through time."
+
 ## Running locally
 
 Any static file server works, since the app uses ES modules (which browsers block over `file://`):

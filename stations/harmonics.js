@@ -1,10 +1,17 @@
-import { drawWaveform, drawIdleMessage } from "../js/visualizers.js";
+import { drawWaveform, drawSpectrum, drawSpectrogram, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
 import { recordInteraction, markComplete, recordCheck } from "../js/progress.js";
 
 const STATION_ID = "harmonics";
 const FUNDAMENTAL_HZ = 110;
 const PARTIAL_COUNT = 9;
+const MIN_HZ_AXIS = 20;
+const MAX_HZ_AXIS = 2000;
 const COMPLETE_AFTER_INTERACTIONS = 6;
+const AXIS_LABELS = [20, 100, 1000];
+
+function formatHzLabel(hz) {
+  return hz >= 1000 ? `${hz / 1000}k` : `${hz}`;
+}
 // Short labels keep every slot the same width so the row doesn't wrap
 // early on narrow screens; the fuller wording lives in aria-label instead.
 const LABELS = { 1: "Fund." };
@@ -36,12 +43,35 @@ export function mount(container, { audioEngine, accent }) {
 
     <canvas class="waveform-canvas" id="harmonics-canvas" width="600" height="180"
       role="img" aria-label="Live waveform of the combined harmonics"></canvas>
+
+    <div class="osc-control-label">Spectrum (frequency)</div>
+    <canvas class="spectrum-canvas" id="harmonics-spectrum-canvas" width="600" height="180"
+      role="img" aria-label="Live frequency spectrum of the combined harmonics"></canvas>
+    <div class="spectrum-axis" id="harmonics-spectrum-axis"></div>
+
+    <div class="osc-control-label">Spectrogram (frequency vs. time)</div>
+    <canvas class="spectrum-canvas" id="harmonics-spectrogram-canvas" width="600" height="220"
+      role="img" aria-label="Scrolling spectrogram of the combined harmonics"></canvas>
+    <div class="spectrum-axis" id="harmonics-spectrogram-axis"></div>
   `;
 
   const predictBox = container.querySelector("#predict-box");
   const predictReveal = container.querySelector("#predict-reveal");
   const barsEl = container.querySelector("#harmonic-bars");
   const canvas = container.querySelector("#harmonics-canvas");
+  const spectrumCanvas = container.querySelector("#harmonics-spectrum-canvas");
+  const spectrumAxisEl = container.querySelector("#harmonics-spectrum-axis");
+  const spectrogramCanvas = container.querySelector("#harmonics-spectrogram-canvas");
+  const spectrogramAxisEl = container.querySelector("#harmonics-spectrogram-axis");
+
+  for (const axisEl of [spectrumAxisEl, spectrogramAxisEl]) {
+    for (const hz of AXIS_LABELS) {
+      const tick = document.createElement("span");
+      tick.textContent = `${formatHzLabel(hz)} Hz`;
+      tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
+      axisEl.appendChild(tick);
+    }
+  }
 
   predictBox.querySelectorAll("[data-guess]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -60,6 +90,9 @@ export function mount(container, { audioEngine, accent }) {
   const bars = new Map();
   let voice = null;
   let stopViz = null;
+  let localAnalyser = null;
+  let stopSpectrumViz = null;
+  let stopSpectrogramViz = null;
   let interactionCount = 0;
 
   for (let k = 1; k <= PARTIAL_COUNT; k++) {
@@ -129,12 +162,32 @@ export function mount(container, { audioEngine, accent }) {
     voice = audioEngine.createVoice({ freq: FUNDAMENTAL_HZ, type: "sine", gain: 0.28 });
     voice.setPeriodicWave(buildWave());
     stopViz = drawWaveform(canvas, audioEngine.analyser, { color: accent });
+
+    // Own analyser (not the shared one) so its fftSize/smoothing can be
+    // tuned for the frequency-domain views without affecting every other
+    // station's time-domain waveform.
+    localAnalyser = audioEngine.ctx.createAnalyser();
+    localAnalyser.fftSize = 8192;
+    localAnalyser.smoothingTimeConstant = 0.6;
+    audioEngine.masterGain.connect(localAnalyser);
+    stopSpectrumViz = drawSpectrum(spectrumCanvas, localAnalyser, {
+      color: accent,
+      minHz: MIN_HZ_AXIS,
+      maxHz: MAX_HZ_AXIS,
+    });
+    stopSpectrogramViz = drawSpectrogram(spectrogramCanvas, localAnalyser, {
+      color: accent,
+      minHz: MIN_HZ_AXIS,
+      maxHz: MAX_HZ_AXIS,
+    });
   }
 
   if (audioEngine.isStarted) {
     setupAudio();
   } else {
     drawIdleMessage(canvas, "Tap Start Sound to hear it");
+    drawIdleMessage(spectrumCanvas, "Tap Start Sound to hear it");
+    drawIdleMessage(spectrogramCanvas, "Tap Start Sound to hear it");
   }
   window.addEventListener("soundlab:started", setupAudio);
 
@@ -143,6 +196,9 @@ export function mount(container, { audioEngine, accent }) {
   return function unmount() {
     window.removeEventListener("soundlab:started", setupAudio);
     if (stopViz) stopViz();
+    if (stopSpectrumViz) stopSpectrumViz();
+    if (stopSpectrogramViz) stopSpectrogramViz();
     if (voice) voice.stop();
+    if (localAnalyser) audioEngine.masterGain.disconnect(localAnalyser);
   };
 }
