@@ -41,13 +41,23 @@ export function drawWaveform(canvas, analyser, options = {}) {
 
   const data = new Uint8Array(analyser.fftSize);
 
+  // When several canvases show related signals (e.g. wave A, wave B, and
+  // their sum) that must stay phase-comparable, each one finding its *own*
+  // trigger point independently would silently re-sync every wave to its
+  // own zero-crossing — erasing whatever real phase relationship existed
+  // between them. Passing the same triggerSource analyser to all of them
+  // anchors every draw to one shared reference instant instead.
+  const triggerSource = options.triggerSource || analyser;
+  const usesOwnData = triggerSource === analyser;
+  const triggerData = usesOwnData ? data : new Uint8Array(triggerSource.fftSize);
+
   // Without this, each animation frame samples a different, uncorrelated
   // slice of phase, so a perfectly periodic tone looks like it's jittering
   // in place. Locking the draw window to a rising zero-crossing (the way a
   // hardware oscilloscope triggers) makes the shape hold still instead.
   function findTriggerOffset(searchLimit) {
     for (let i = 1; i < searchLimit; i++) {
-      if (data[i - 1] < 128 && data[i] >= 128) return i;
+      if (triggerData[i - 1] < 128 && triggerData[i] >= 128) return i;
     }
     return 0;
   }
@@ -65,6 +75,7 @@ export function drawWaveform(canvas, analyser, options = {}) {
     const h = canvas.height;
 
     analyser.getByteTimeDomainData(data);
+    if (!usesOwnData) triggerSource.getByteTimeDomainData(triggerData);
 
     const requestedWindow = getWindowSamples();
     // A requested window is a desired *draw* length, with an equal budget
@@ -73,8 +84,10 @@ export function drawWaveform(canvas, analyser, options = {}) {
       requestedWindow == null
         ? data.length
         : Math.max(4, Math.min(Math.round(requestedWindow) * 2, data.length));
-    const searchLimit = Math.floor(totalWindow / 2);
-    const drawLength = totalWindow - searchLimit;
+    // Clamped to triggerData's own length too, in case a caller pairs
+    // analysers of different fftSizes.
+    const searchLimit = Math.min(Math.floor(totalWindow / 2), triggerData.length);
+    const drawLength = totalWindow - Math.floor(totalWindow / 2);
 
     const offset = findTriggerOffset(searchLimit);
     const ampScale = getAmpScale();

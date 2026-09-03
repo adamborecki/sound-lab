@@ -95,9 +95,19 @@ export function mount(container, { audioEngine, accent }) {
     analyserB.fftSize = 2048;
     gainB.connect(analyserB);
 
+    // Shared trigger reference (A's) — otherwise each canvas independently
+    // re-syncing to its own zero-crossing hides B's inversion entirely.
     stopVizA = drawWaveform(canvasA, analyserA, { color: "#7CE0FF", ampScale: 4 });
-    stopVizB = drawWaveform(canvasB, analyserB, { color: "#FF9B7C", ampScale: 4 });
-    stopVizSum = drawWaveform(canvasSum, audioEngine.analyser, { color: accent, ampScale: 4 });
+    stopVizB = drawWaveform(canvasB, analyserB, {
+      color: "#FF9B7C",
+      ampScale: 4,
+      triggerSource: analyserA,
+    });
+    stopVizSum = drawWaveform(canvasSum, audioEngine.analyser, {
+      color: accent,
+      ampScale: 4,
+      triggerSource: analyserA,
+    });
   }
 
   if (audioEngine.isStarted) {

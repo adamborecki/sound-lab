@@ -120,9 +120,21 @@ export function mount(container, { audioEngine, accent }) {
     // A/B are tapped pre-master (raw 0.2 gain); Sum is tapped post-master
     // (the shared analyser), so at most 0.4 * masterGain(0.5) = 0.2. Both
     // need boosting to read clearly on a -1..1 canvas.
+    // All three canvases must trigger off the SAME reference point (A's),
+    // or each independently re-syncing to its own zero-crossing would
+    // silently erase the phase relationship this whole station exists to
+    // show — B's whole point is that it does NOT line up with A.
     stopVizA = drawWaveform(canvasA, analyserA, { color: "#7CE0FF", ampScale: 4 });
-    stopVizB = drawWaveform(canvasB, analyserB, { color: "#FF9B7C", ampScale: 4 });
-    stopVizSum = drawWaveform(canvasSum, audioEngine.analyser, { color: accent, ampScale: 4 });
+    stopVizB = drawWaveform(canvasB, analyserB, {
+      color: "#FF9B7C",
+      ampScale: 4,
+      triggerSource: analyserA,
+    });
+    stopVizSum = drawWaveform(canvasSum, audioEngine.analyser, {
+      color: accent,
+      ampScale: 4,
+      triggerSource: analyserA,
+    });
   }
 
   if (audioEngine.isStarted) {
