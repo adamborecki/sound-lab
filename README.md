@@ -18,6 +18,8 @@ Oscillator's Square waveform now has a Width control that morphs it into a recta
 
 Spectrum Analyzer now has Frequency (80 Hz – 4 kHz) and Amplitude controls for the tone sources; Frequency hides itself for the noise sources, which have no single fundamental to tune.
 
+Spectrogram now sweeps Sine, Triangle, Square, and Sawtooth (alongside White/Pink Noise) so a visitor can see a sine as a single moving line versus the others' harmonic stacks (odd-only for triangle/square, full series for sawtooth) all sweeping together. Also fixed a rendering bug where the newest scrolling column blended onto the previous frame's leftover pixels instead of starting from black, causing swept tones to leave stale trails and noise sources to smear into a solid blob.
+
 ## Running locally
 
 Any static file server works, since the app uses ES modules (which browsers block over `file://`):

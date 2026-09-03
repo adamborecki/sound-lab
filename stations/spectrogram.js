@@ -1,20 +1,24 @@
 import { drawSpectrogram, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
+import { waveIconSvg } from "../js/wave-icons.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
 const STATION_ID = "spectrogram";
 const MIN_HZ_AXIS = 20;
 const MAX_HZ_AXIS = 20000;
-const MIN_SINE_HZ = 100;
-const MAX_SINE_HZ = 8000;
+const MIN_TONE_HZ = 100;
+const MAX_TONE_HZ = 8000;
 const LOCAL_ANALYSER_FFT_SIZE = 4096;
 const COMPLETE_AFTER_INTERACTIONS = 6;
 const AXIS_LABELS = [20, 100, 1000, 10000];
 
 const SOURCES = [
-  { id: "sine", label: "Sweepable Sine" },
-  { id: "white", label: "White Noise", color: "white" },
-  { id: "pink", label: "Pink Noise", color: "pink" },
+  { id: "sine", label: "Sine", icon: "sine" },
+  { id: "triangle", label: "Triangle", icon: "triangle" },
+  { id: "square", label: "Square", icon: "square" },
+  { id: "sawtooth", label: "Sawtooth", icon: "sawtooth" },
+  { id: "white", label: "White Noise", icon: "noise", color: "white" },
+  { id: "pink", label: "Pink Noise", icon: "noise", color: "pink" },
 ];
 
 function formatHzLabel(hz) {
@@ -23,14 +27,14 @@ function formatHzLabel(hz) {
 
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
-    <p class="prompt">A spectrogram is frequency (up/down) vs. time (left → right), with loudness shown as brightness. Drag the sine's pitch and watch the bright line rise and fall as it scrolls by.</p>
+    <p class="prompt">A spectrogram is frequency (up/down) vs. time (left → right), with loudness shown as brightness. Sine sweeps a single line; square, triangle, and sawtooth each sweep a whole stack of harmonics together.</p>
 
-    <div class="preset-row" id="sg-sources"></div>
+    <div class="wave-button-row" id="sg-sources"></div>
 
     <div class="sg-freq-control" id="sg-freq-control">
       <div class="big-readout" id="sg-freq-readout">440 Hz</div>
-      <input type="range" id="sg-freq-slider" class="big-slider" min="${MIN_SINE_HZ}" max="${MAX_SINE_HZ}" value="440" step="1"
-        aria-label="Sine frequency in Hertz" />
+      <input type="range" id="sg-freq-slider" class="big-slider" min="${MIN_TONE_HZ}" max="${MAX_TONE_HZ}" value="440" step="1"
+        aria-label="Fundamental frequency in Hertz" />
     </div>
 
     <canvas class="spectrum-canvas" id="sg-canvas" width="600" height="240"
@@ -55,9 +59,9 @@ export function mount(container, { audioEngine, accent }) {
   const buttons = new Map();
   for (const s of SOURCES) {
     const btn = document.createElement("button");
-    btn.className = "chip";
+    btn.className = "wave-btn";
     btn.type = "button";
-    btn.textContent = s.label;
+    btn.innerHTML = `${waveIconSvg(s.icon)}<span>${s.label}</span>`;
     btn.addEventListener("click", () => selectSource(s));
     sourceRow.appendChild(btn);
     buttons.set(s.id, btn);
@@ -67,19 +71,25 @@ export function mount(container, { audioEngine, accent }) {
   let localAnalyser = null;
   let stopViz = null;
   let current = SOURCES[0];
-  let sineFreq = 440;
+  let toneFreq = 440;
   let interactionCount = 0;
   const triedSources = new Set();
 
   function applySelection(s) {
     current = s;
     for (const [id, btn] of buttons) btn.classList.toggle("active", id === s.id);
-    freqControl.hidden = s.id !== "sine";
+    // Noise has no fundamental frequency to sweep — hide the control rather
+    // than leave it visible but meaningless for those sources.
+    freqControl.hidden = !!s.color;
   }
 
   function createVoiceFor(s) {
     if (s.color) return audioEngine.createNoiseVoice({ gain: 0.22, color: s.color });
-    return audioEngine.createVoice({ freq: sineFreq, type: "sine", gain: 0.28 });
+    // Square/sawtooth pack more harmonic energy per bin than a sine, so
+    // they read as noticeably louder at the same gain — trim it back to
+    // keep loudness roughly matched across wave shapes.
+    const gain = s.id === "sine" ? 0.28 : 0.2;
+    return audioEngine.createVoice({ freq: toneFreq, type: s.id, gain });
   }
 
   function maybeComplete() {
@@ -101,11 +111,11 @@ export function mount(container, { audioEngine, accent }) {
     maybeComplete();
   }
 
-  function setSineFreq(hz, userInitiated = false) {
-    sineFreq = clamp(Math.round(hz), MIN_SINE_HZ, MAX_SINE_HZ);
-    freqSlider.value = String(sineFreq);
-    freqReadout.textContent = formatHz(sineFreq);
-    if (voice && current.id === "sine") voice.setFreq(sineFreq, 0.05);
+  function setToneFreq(hz, userInitiated = false) {
+    toneFreq = clamp(Math.round(hz), MIN_TONE_HZ, MAX_TONE_HZ);
+    freqSlider.value = String(toneFreq);
+    freqReadout.textContent = formatHz(toneFreq);
+    if (voice && !current.color) voice.setFreq(toneFreq, 0.05);
     if (userInitiated) {
       interactionCount += 1;
       recordInteraction(STATION_ID);
@@ -113,7 +123,7 @@ export function mount(container, { audioEngine, accent }) {
     }
   }
 
-  freqSlider.addEventListener("input", () => setSineFreq(Number(freqSlider.value), true));
+  freqSlider.addEventListener("input", () => setToneFreq(Number(freqSlider.value), true));
 
   function setupAudio() {
     if (!audioEngine.isStarted || voice) return;
