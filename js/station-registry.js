@@ -83,6 +83,15 @@ export const stations = [
     accent: "#E066FF",
   },
   {
+    id: "spectrum",
+    title: "Spectrum Analyzer",
+    category: "waves",
+    purpose: "The same sounds, seen as frequency instead of time.",
+    required: false,
+    module: "../stations/spectrum.js",
+    accent: "#FF6B9D",
+  },
+  {
     id: "finish",
     title: "Finish & Submit",
     category: "finish",

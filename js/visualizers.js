@@ -109,6 +109,72 @@ export function drawWaveform(canvas, analyser, options = {}) {
   };
 }
 
+// Fraction (0..1) of the way from minHz to maxHz on a log scale — shared
+// between drawSpectrum and any station that draws its own frequency-axis
+// labels, so the two always agree on where a given Hz value sits.
+export function logPositionForFreq(freq, minHz, maxHz) {
+  const t =
+    (Math.log(freq) - Math.log(minHz)) / (Math.log(maxHz) - Math.log(minHz));
+  return clamp(t, 0, 1);
+}
+
+// Draws a live frequency-domain bar chart from an AnalyserNode (magnitude
+// per bin, log-scaled x-axis so octaves get equal screen space — the way
+// real spectrum analyzers read). Same stop-function contract as
+// drawWaveform. Generic over whatever's connected to the analyser, so any
+// future station (colored noise, a 3D view, etc.) can reuse this as-is.
+export function drawSpectrum(canvas, analyser, options = {}) {
+  const ctx = canvas.getContext("2d");
+  const color = options.color || "#7CE0FF";
+  const minHz = options.minHz || 20;
+  const maxHz = options.maxHz || Math.min(20000, analyser.context.sampleRate / 2);
+  let raf = null;
+  let stopped = false;
+  const reduced = prefersReducedMotion();
+  const frameGap = reduced ? 200 : 0;
+  let lastDraw = 0;
+
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  const binHz = analyser.context.sampleRate / analyser.fftSize;
+
+  function render(t) {
+    if (stopped) return;
+    if (t - lastDraw < frameGap) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
+    lastDraw = t;
+
+    const dpr = fitCanvasToDisplaySize(canvas);
+    const w = canvas.width;
+    const h = canvas.height;
+
+    analyser.getByteFrequencyData(data);
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = color;
+
+    const barWidth = Math.max(1.5 * dpr, 1);
+    for (let i = 1; i < data.length; i++) {
+      const freq = i * binHz;
+      if (freq < minHz || freq > maxHz) continue;
+      const x = logPositionForFreq(freq, minHz, maxHz) * w;
+      const amp = data[i] / 255;
+      const barHeight = amp * h * 0.95;
+      ctx.fillRect(x, h - barHeight, barWidth, barHeight);
+    }
+
+    raf = requestAnimationFrame(render);
+  }
+
+  raf = requestAnimationFrame(render);
+
+  return function stop() {
+    stopped = true;
+    if (raf) cancelAnimationFrame(raf);
+  };
+}
+
 // Renders a static "not playing yet" waveform placeholder, no animation loop.
 export function drawIdleMessage(canvas, message) {
   const ctx = canvas.getContext("2d");
