@@ -4,7 +4,7 @@ A museum-floor-style site for exploring acoustics and synthesis basics. No build
 
 ## Status
 
-Milestone 4: shell, shared audio engine, progress tracking, twenty stations, and a Finish & Submit page. Floor groups stations by **Day 1 / Day 2 / Day 3** — matching the instructor's actual course sequence rather than an arbitrary required/optional split — with a single overall "baseline complete" banner once all required stations are done (Pitch × Loudness is currently the only deliberate bonus/optional station, tagged with a "Bonus" badge instead of being segregated into its own section).
+Milestone 4: shell, shared audio engine, progress tracking, twenty stations, and a Finish & Submit page (currently hidden from the floor — set `hidden: true` to `false` on the `finish` entry in `js/station-registry.js` to bring it back). Floor groups stations by **Day 1 / Day 2 / Day 3** — matching the instructor's actual course sequence rather than an arbitrary required/optional split — with a single overall "baseline complete" banner once all required stations are done (Pitch × Loudness is currently the only deliberate bonus/optional station, tagged with a "Bonus" badge instead of being segregated into its own section).
 
 - Day 1 — What Is Sound?, Frequency, Amplitude, Decibels: FS vs SPL, Periodic vs. Aperiodic, Octave Machine, Pitch × Loudness (bonus)
 - Day 2 — Wave Shape Gallery, Pulse Wave, Oscillator, Colors of Noise, Phase, Polarity, Constructive Interference, Destructive Interference

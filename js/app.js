@@ -47,6 +47,7 @@ function renderFloor() {
   const dayStations = { 1: [], 2: [], 3: [] };
   const finishStations = [];
   for (const s of stations) {
+    if (s.hidden) continue;
     if (s.finish) finishStations.push(s);
     else if (s.day) dayStations[s.day].push(s);
   }

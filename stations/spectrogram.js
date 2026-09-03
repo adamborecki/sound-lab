@@ -32,8 +32,8 @@ export function mount(container, { audioEngine, accent }) {
     <div class="wave-button-row" id="sg-sources"></div>
 
     <div class="sg-freq-control" id="sg-freq-control">
-      <div class="big-readout" id="sg-freq-readout">440 Hz</div>
-      <input type="range" id="sg-freq-slider" class="big-slider" min="${MIN_TONE_HZ}" max="${MAX_TONE_HZ}" value="440" step="1"
+      <div class="big-readout" id="sg-freq-readout">220 Hz</div>
+      <input type="range" id="sg-freq-slider" class="big-slider" min="${MIN_TONE_HZ}" max="${MAX_TONE_HZ}" value="220" step="1"
         aria-label="Fundamental frequency in Hertz" />
     </div>
 
@@ -71,7 +71,7 @@ export function mount(container, { audioEngine, accent }) {
   let localAnalyser = null;
   let stopViz = null;
   let current = SOURCES[0];
-  let toneFreq = 440;
+  let toneFreq = 220;
   let interactionCount = 0;
   const triedSources = new Set();
 

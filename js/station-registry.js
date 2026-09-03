@@ -215,6 +215,8 @@ export const stations = [
     category: "finish",
     purpose: "Reflect, then generate your Canvas submission receipt.",
     finish: true,
+    // Hidden from the floor for now — bring back by removing this flag.
+    hidden: true,
     module: "../stations/finish.js",
     accent: "#38BDF8",
   },

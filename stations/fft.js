@@ -45,14 +45,14 @@ export function mount(container, { audioEngine, accent }) {
 
     <div class="fft-section">
       <div class="osc-control-label">Spectrogram (frequency vs. time)</div>
+      <canvas class="spectrum-canvas" id="fft-spectrogram-canvas" width="600" height="220"
+        role="img" aria-label="Scrolling spectrogram of the combined harmonics"></canvas>
+      <div class="spectrum-axis" id="fft-spectrogram-axis"></div>
       <p class="fft-caption">
         Same idea, seen a third way: the spectrum above is one instant frozen in time. Here it keeps
         scrolling — each harmonic is a horizontal line, its brightness is loudness, and switching
         recipes shows the whole line pattern change at once.
       </p>
-      <canvas class="spectrum-canvas" id="fft-spectrogram-canvas" width="600" height="220"
-        role="img" aria-label="Scrolling spectrogram of the combined harmonics"></canvas>
-      <div class="spectrum-axis" id="fft-spectrogram-axis"></div>
     </div>
   `;
 
