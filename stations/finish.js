@@ -2,7 +2,7 @@ import { getState, setReflection, markComplete } from "../js/progress.js";
 import { stations } from "../js/station-registry.js";
 
 const STATION_ID = "finish";
-const RECEIPT_SCHEMA = "sound-lab-receipt-v1";
+const RECEIPT_SCHEMA = "sound-lab-receipt-v2";
 
 async function sha256Hex(text) {
   const bytes = new TextEncoder().encode(text);
@@ -12,13 +12,22 @@ async function sha256Hex(text) {
     .join("");
 }
 
+// Decimal minutes, one place — this is a rough time-on-task figure (see
+// js/time-tracker.js), not a precise stopwatch.
+function toMinutes(ms) {
+  return Math.round((ms / 60000) * 10) / 10;
+}
+
 export function mount(container) {
-  const floorStations = stations.filter((s) => !s.finish);
-  const requiredIds = floorStations.filter((s) => s.required).map((s) => s.id);
-  const optionalIds = floorStations.filter((s) => !s.required).map((s) => s.id);
+  const floorStations = stations.filter((s) => !s.finish && !s.hidden);
 
   container.innerHTML = `
-    <p class="prompt">Two quick reflections, then generate a receipt you can paste into your Canvas submission.</p>
+    <p class="prompt">
+      Two quick reflections, then generate a data export you can paste into your Canvas submission.
+      It's a plain summary of which stations you opened, how much you interacted with each, and
+      roughly how long you spent — nothing is required or graded on completion, this just records
+      what you actually did.
+    </p>
 
     <label class="reflection-label" for="reflection1">What is one thing you understand better after experimenting with Sound Lab?</label>
     <textarea id="reflection1" class="reflection-input" rows="3"></textarea>
@@ -26,20 +35,17 @@ export function mount(container) {
     <label class="reflection-label" for="reflection2">Describe one setting or experiment where changing something produced a result you didn't expect.</label>
     <textarea id="reflection2" class="reflection-input" rows="3"></textarea>
 
-    <button class="btn btn-start" id="generate-btn" type="button">Generate My Receipt</button>
+    <button class="btn btn-start" id="generate-btn" type="button">Generate My Export</button>
 
     <div id="receipt-area" hidden>
+      <p class="receipt-summary" id="receipt-summary"></p>
       <pre class="receipt-block" id="receipt-text"></pre>
       <button class="btn btn-stop" id="copy-btn" type="button">Copy Submission</button>
       <p class="copy-status" id="copy-status" aria-live="polite"></p>
-      <details class="receipt-details">
-        <summary>Full checksum</summary>
-        <code id="full-hash"></code>
-      </details>
       <p class="receipt-disclaimer">
-        This is a completion receipt and integrity checksum, not proof of honest work — everything
-        here lives in your browser and could be edited. It gives your submission a consistent
-        fingerprint and a quick standardized summary, nothing more.
+        This is an engagement summary and integrity checksum, not proof of honest work — everything
+        here lives in your browser and could be edited. It gives your instructor a consistent,
+        parseable record of what you opened and roughly how long you spent, nothing more.
       </p>
     </div>
   `;
@@ -54,8 +60,8 @@ export function mount(container) {
 
   const generateBtn = container.querySelector("#generate-btn");
   const receiptArea = container.querySelector("#receipt-area");
+  const receiptSummary = container.querySelector("#receipt-summary");
   const receiptText = container.querySelector("#receipt-text");
-  const fullHash = container.querySelector("#full-hash");
   const copyBtn = container.querySelector("#copy-btn");
   const copyStatus = container.querySelector("#copy-status");
 
@@ -64,38 +70,48 @@ export function mount(container) {
     setReflection("reflection2", r2.value);
     const fresh = getState();
 
-    const requiredCompleted = requiredIds.filter((id) => fresh.stations[id]?.completed);
-    const optionalCompleted = optionalIds.filter((id) => fresh.stations[id]?.completed);
+    const stationReports = floorStations.map((s) => {
+      const st = fresh.stations[s.id] || {};
+      return {
+        id: s.id,
+        title: s.title,
+        day: s.day || null,
+        opened: !!st.opened,
+        completed: !!st.completed,
+        interactions: st.interactions || 0,
+        activeMinutes: toMinutes(st.activeMs || 0),
+      };
+    });
 
-    const summary = {
+    const stationsOpened = stationReports.filter((s) => s.opened).length;
+    const stationsCompleted = stationReports.filter((s) => s.completed).length;
+    const totalInteractions = stationReports.reduce((sum, s) => sum + s.interactions, 0);
+    const totalActiveMs = floorStations.reduce(
+      (sum, s) => sum + (fresh.stations[s.id]?.activeMs || 0),
+      0,
+    );
+    const totalActiveMinutes = toMinutes(totalActiveMs);
+
+    const payload = {
       schema: RECEIPT_SCHEMA,
       sessionId: fresh.sessionId,
       startedAt: fresh.startedAt,
+      generatedAt: new Date().toISOString(),
+      stationsTotal: floorStations.length,
+      stationsOpened,
+      stationsCompleted,
+      totalInteractions,
+      totalActiveMinutes,
       reflection1: r1.value.trim(),
       reflection2: r2.value.trim(),
-      requiredCompleted: requiredCompleted.length,
-      requiredTotal: requiredIds.length,
-      optionalCompleted: optionalCompleted.length,
-      stationCompletionIds: [...requiredCompleted, ...optionalCompleted],
+      stations: stationReports,
     };
 
-    const canonical = JSON.stringify(summary, Object.keys(summary).sort());
-    const hash = await sha256Hex(canonical);
-    const shortHash = hash.slice(0, 8);
+    const hash = await sha256Hex(JSON.stringify(payload));
+    const final = { ...payload, checksum: `sha256:${hash}` };
 
-    receiptText.textContent = `MUS 244 SOUND LAB
-
-Session: ${fresh.sessionId}
-Required stations completed: ${summary.requiredCompleted}/${summary.requiredTotal}
-Optional stations explored: ${summary.optionalCompleted}
-
-Two things I noticed:
-1. ${summary.reflection1 || "(not answered)"}
-2. ${summary.reflection2 || "(not answered)"}
-
-Completion receipt:
-SL1:${fresh.sessionId}:${summary.requiredCompleted}-${summary.optionalCompleted}:${shortHash}`;
-    fullHash.textContent = hash;
+    receiptSummary.textContent = `Opened ${stationsOpened}/${floorStations.length} stations · ${totalInteractions} interactions · ~${totalActiveMinutes} min tracked`;
+    receiptText.textContent = JSON.stringify(final, null, 2);
     receiptArea.hidden = false;
     copyStatus.textContent = "";
     markComplete(STATION_ID);

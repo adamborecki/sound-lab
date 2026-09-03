@@ -1,7 +1,8 @@
 import { audioEngine } from "./audio-engine.js";
 import { requestStart } from "./audio-start.js";
 import { stations, getStation } from "./station-registry.js";
-import { recordOpen, isComplete, requiredSummary } from "./progress.js";
+import { recordOpen, isComplete, completionSummary } from "./progress.js";
+import { setActiveStation, clearActiveStation } from "./time-tracker.js";
 
 const floorEl = document.getElementById("floor");
 const stageEl = document.getElementById("stage");
@@ -27,9 +28,7 @@ function stationGrid(list) {
     card.className = "station-card";
     card.href = `#/station/${station.id}`;
     card.style.setProperty("--accent", station.accent);
-    let badge = "";
-    if (complete) badge = '<span class="badge badge-complete">✓ Done</span>';
-    else if (station.required === false) badge = '<span class="badge badge-optional">Bonus</span>';
+    const badge = complete ? '<span class="badge badge-complete">✓ Done</span>' : "";
     card.innerHTML = `
       ${badge}
       <h3>${station.title}</h3>
@@ -52,8 +51,8 @@ function renderFloor() {
     else if (s.day) dayStations[s.day].push(s);
   }
 
-  const requiredIds = stations.filter((s) => s.required && !s.finish).map((s) => s.id);
-  const { done, total } = requiredSummary(requiredIds);
+  const floorIds = stations.filter((s) => !s.finish && !s.hidden).map((s) => s.id);
+  const { done, total } = completionSummary(floorIds);
 
   const intro = document.createElement("p");
   intro.className = "floor-intro";
@@ -74,18 +73,11 @@ function renderFloor() {
   floorEl.appendChild(soundHelp);
 
   if (total > 0) {
-    if (done >= total) {
-      const banner = document.createElement("div");
-      banner.className = "baseline-banner";
-      banner.innerHTML =
-        "<strong>Baseline complete ✓</strong> You have enough for the Canvas submission. Keep exploring if you want — there's more below.";
-      floorEl.appendChild(banner);
-    } else {
-      const summary = document.createElement("p");
-      summary.className = "floor-summary";
-      summary.textContent = `${done}/${total} required stations complete`;
-      floorEl.appendChild(summary);
-    }
+    const summary = document.createElement("p");
+    summary.className = "floor-summary";
+    summary.textContent =
+      done >= total ? `All ${total} stations explored ✓` : `${done}/${total} stations completed`;
+    floorEl.appendChild(summary);
   }
 
   for (const day of [1, 2, 3]) {
@@ -128,6 +120,7 @@ async function renderStation(id) {
   stageEl.appendChild(body);
 
   recordOpen(station.id);
+  setActiveStation(station.id);
   const mod = await import(station.module);
   currentUnmount = mod.mount(body, { audioEngine, accent: station.accent });
 }
@@ -145,6 +138,7 @@ function route() {
       currentUnmount();
       currentUnmount = null;
     }
+    clearActiveStation();
     renderFloor();
     floorEl.hidden = false;
     stageEl.hidden = true;

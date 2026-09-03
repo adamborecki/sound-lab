@@ -43,7 +43,7 @@ function save() {
 
 function ensureStation(id) {
   if (!state.stations[id]) {
-    state.stations[id] = { opened: false, completed: false, interactions: 0 };
+    state.stations[id] = { opened: false, completed: false, interactions: 0, activeMs: 0 };
   }
   return state.stations[id];
 }
@@ -72,6 +72,16 @@ export function recordInteraction(id) {
   save();
 }
 
+// Adds a chunk of wall-clock time the visitor had this station open and the
+// tab visible — a rough, not-fussy approximation of time-on-task (see
+// js/time-tracker.js for how segments are measured and flushed here).
+export function addActiveTime(id, ms) {
+  if (!(ms > 0)) return;
+  const s = ensureStation(id);
+  s.activeMs = (s.activeMs || 0) + ms;
+  save();
+}
+
 export function isComplete(id) {
   return !!state.stations[id]?.completed;
 }
@@ -85,7 +95,7 @@ export function markComplete(id) {
   }
 }
 
-export function requiredSummary(stationIds) {
+export function completionSummary(stationIds) {
   const total = stationIds.length;
   const done = stationIds.filter((id) => isComplete(id)).length;
   return { done, total };

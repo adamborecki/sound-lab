@@ -2,12 +2,13 @@
 // a module in /stations that exports mount(container, ctx) -> unmount().
 //
 // `day` groups stations on the floor to match the course's actual Day 1-3
-// sequence (see MUS244_Sound_Lab_Codex_Spec.md and the instructor's slides)
-// rather than an arbitrary required/optional split. `required` still marks
-// which stations count toward the baseline-complete banner — most do;
-// Pitch × Loudness is the one deliberate bonus so far. `finish: true`
-// instead of `day` puts a station in its own Finish section, exempt from
-// the day grouping and the required count.
+// sequence (see MUS244_Sound_Lab_Codex_Spec.md and the instructor's slides).
+// Nothing is "required" — the floor's completion counter and the Finish
+// receipt both just report whatever a visitor actually did, station by
+// station. `finish: true` instead of `day` puts a station in its own Finish
+// section, exempt from the day grouping and the completion count. `hidden:
+// true` removes a station from the floor entirely (module/route still
+// work) without deleting it — see the `finish` entry below.
 export const stations = [
   {
     id: "sound-waves",
@@ -15,7 +16,6 @@ export const stations = [
     category: "sound",
     purpose: "Vibration, pressure, compression — how sound actually moves.",
     day: 1,
-    required: true,
     module: "../stations/sound-waves.js",
     accent: "#8CE8C4",
   },
@@ -25,7 +25,6 @@ export const stations = [
     category: "sound",
     purpose: "Turn one big knob and hear pitch go up and down.",
     day: 1,
-    required: true,
     module: "../stations/frequency.js",
     accent: "#7CE0FF",
   },
@@ -35,7 +34,6 @@ export const stations = [
     category: "sound",
     purpose: "Change loudness without touching pitch.",
     day: 1,
-    required: true,
     module: "../stations/amplitude.js",
     accent: "#FF7CD6",
   },
@@ -45,7 +43,6 @@ export const stations = [
     category: "amplitude",
     purpose: "Two different meanings of \"dB\" — one digital, one physical.",
     day: 1,
-    required: true,
     module: "../stations/decibels.js",
     accent: "#4DD9C5",
   },
@@ -55,7 +52,6 @@ export const stations = [
     category: "waves",
     purpose: "Zoom into a waveform. Does it repeat, or is it noise?",
     day: 1,
-    required: true,
     module: "../stations/periodic.js",
     accent: "#E066FF",
   },
@@ -65,7 +61,6 @@ export const stations = [
     category: "frequency",
     purpose: "Double it, halve it. Meet the family a note belongs to.",
     day: 1,
-    required: true,
     module: "../stations/octave.js",
     accent: "#FF9B7C",
   },
@@ -75,7 +70,6 @@ export const stations = [
     category: "sound",
     purpose: "Two dimensions, one pad. Prove they're independent.",
     day: 1,
-    required: false,
     module: "../stations/frequency-amplitude.js",
     accent: "#6BFFB0",
   },
@@ -85,7 +79,6 @@ export const stations = [
     category: "timbre",
     purpose: "Same pitch, four different shapes. Why does it sound different?",
     day: 2,
-    required: true,
     module: "../stations/waveforms.js",
     accent: "#FFC96B",
   },
@@ -95,7 +88,6 @@ export const stations = [
     category: "timbre",
     purpose: "Same pitch, squeeze the pulse — different timbre.",
     day: 2,
-    required: true,
     module: "../stations/pulse.js",
     accent: "#FFA13C",
   },
@@ -105,7 +97,6 @@ export const stations = [
     category: "oscillators",
     purpose: "The thing that makes the wave in the first place.",
     day: 2,
-    required: true,
     module: "../stations/oscillator.js",
     accent: "#B48CFF",
   },
@@ -115,7 +106,6 @@ export const stations = [
     category: "noise",
     purpose: "White, pink, red, violet, blue — noise has a spectrum too.",
     day: 2,
-    required: true,
     module: "../stations/colors-of-noise.js",
     accent: "#D9D9D9",
   },
@@ -125,7 +115,6 @@ export const stations = [
     category: "interference",
     purpose: "Slide wave B's timing and watch the sum add and cancel.",
     day: 2,
-    required: true,
     module: "../stations/phase.js",
     accent: "#7C9BFF",
   },
@@ -135,7 +124,6 @@ export const stations = [
     category: "interference",
     purpose: "Flip a wave upside down. Same shape, opposite sign.",
     day: 2,
-    required: true,
     module: "../stations/polarity.js",
     accent: "#FF9BE0",
   },
@@ -145,7 +133,6 @@ export const stations = [
     category: "interference",
     purpose: "Two identical waves, perfectly aligned. Twice the amplitude.",
     day: 2,
-    required: true,
     module: "../stations/constructive-interference.js",
     accent: "#6BFFD9",
   },
@@ -155,7 +142,6 @@ export const stations = [
     category: "interference",
     purpose: "Two identical waves, inverted. Silence.",
     day: 2,
-    required: true,
     module: "../stations/destructive-interference.js",
     accent: "#FF6B6B",
   },
@@ -165,7 +151,6 @@ export const stations = [
     category: "harmonics",
     purpose: "Add overtones to a fundamental and watch the waveform build up.",
     day: 3,
-    required: true,
     module: "../stations/harmonics.js",
     accent: "#FFE066",
   },
@@ -175,7 +160,6 @@ export const stations = [
     category: "interference",
     purpose: "Two notes, almost the same pitch. Hear the pulse.",
     day: 3,
-    required: true,
     module: "../stations/beating.js",
     accent: "#C9A6FF",
   },
@@ -185,7 +169,6 @@ export const stations = [
     category: "waves",
     purpose: "The same sounds, seen as frequency instead of time.",
     day: 3,
-    required: true,
     module: "../stations/spectrum.js",
     accent: "#FF6B9D",
   },
@@ -195,7 +178,6 @@ export const stations = [
     category: "waves",
     purpose: "Frequency vs. time vs. loudness, all at once.",
     day: 3,
-    required: true,
     module: "../stations/spectrogram.js",
     accent: "#5CE1E6",
   },
@@ -205,7 +187,6 @@ export const stations = [
     category: "waves",
     purpose: "The same signal, two domains. Turn the dial to cross over.",
     day: 3,
-    required: true,
     module: "../stations/fft.js",
     accent: "#F9A826",
   },
@@ -215,8 +196,6 @@ export const stations = [
     category: "finish",
     purpose: "Reflect, then generate your Canvas submission receipt.",
     finish: true,
-    // Hidden from the floor for now — bring back by removing this flag.
-    hidden: true,
     module: "../stations/finish.js",
     accent: "#38BDF8",
   },
