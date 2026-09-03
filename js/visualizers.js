@@ -237,6 +237,15 @@ export function drawSpectrogram(canvas, analyser, options = {}) {
     // widths exactly or the image smears at high pixel-density displays.
     ctx.drawImage(canvas, 1, 0, w - 1, h, 0, 0, w - 1, h);
 
+    // The shift above only touches columns [0, w-2] — the new rightmost
+    // column still holds whatever was drawn there last frame. Without
+    // clearing it first, the alpha-blended fillRect below blends onto that
+    // stale pixel instead of black, so quiet bins never fully fade and old
+    // bright spots (e.g. a swept sine's previous pitch) linger for many
+    // frames instead of vanishing on the next silent one.
+    ctx.fillStyle = "#000";
+    ctx.fillRect(w - 1, 0, 1, h);
+
     analyser.getByteFrequencyData(data);
     for (let y = 0; y < h; y++) {
       const frac = 1 - y / h; // top of canvas = highest frequency
