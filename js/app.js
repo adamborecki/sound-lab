@@ -43,7 +43,7 @@ function stationGrid(list) {
 function renderFloor() {
   floorEl.innerHTML = "";
 
-  const dayStations = { 1: [], 2: [], 3: [] };
+  const dayStations = { 1: [], 2: [], 3: [], 4: [] };
   const finishStations = [];
   for (const s of stations) {
     if (s.hidden) continue;
@@ -80,7 +80,7 @@ function renderFloor() {
     floorEl.appendChild(summary);
   }
 
-  for (const day of [1, 2, 3]) {
+  for (const day of [1, 2, 3, 4]) {
     const list = dayStations[day];
     if (!list.length) continue;
     floorEl.appendChild(sectionHeading(`Day ${day}`));
