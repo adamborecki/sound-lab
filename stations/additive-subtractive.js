@@ -31,19 +31,14 @@ function formatHzLabel(hz) {
 
 export function mount(container, { audioEngine, accent }) {
   container.innerHTML = `
-    <p class="prompt">
-      Two roads to a similar kind of tone. On the left, start silent and <strong>add</strong>
-      harmonics one at a time. On the right, start with a harmonically-rich sawtooth and
-      <strong>subtract</strong> the highs with a filter. Tap a panel's title to hear it — the
-      greyed-out one is silent — or just start turning its knobs; either side switches to itself
-      automatically. Watch both spectra the whole time: that's where "adding" and "subtracting"
-      actually differ.
-    </p>
+    <p class="prompt">Two roads to the same kind of tone.</p>
+    <p class="prompt">Left: start silent and <strong>add</strong> harmonics. Right: start full and <strong>subtract</strong> with a filter.</p>
+    <p class="prompt">Tap a panel to hear it — the grey one is silent. Turning either panel's own knob switches to it automatically.</p>
 
     <div class="fft-pair ab-pair">
       <div class="fft-pane ab-pane" id="as-add-pane">
         <button class="ab-pane-header" id="as-add-header" type="button" aria-pressed="false">
-          <span class="ab-pane-dot" aria-hidden="true"></span>Additive — Harmonics
+          <span class="ab-pane-dot" aria-hidden="true"></span>Additive
         </button>
         <div class="ab-pane-body">
           <div class="harmonic-bars" id="as-add-bars"></div>
@@ -54,7 +49,7 @@ export function mount(container, { audioEngine, accent }) {
       </div>
       <div class="fft-pane ab-pane" id="as-sub-pane">
         <button class="ab-pane-header" id="as-sub-header" type="button" aria-pressed="false">
-          <span class="ab-pane-dot" aria-hidden="true"></span>Subtractive — Filtered Sawtooth
+          <span class="ab-pane-dot" aria-hidden="true"></span>Subtractive
         </button>
         <div class="ab-pane-body">
           <div class="osc-control">
