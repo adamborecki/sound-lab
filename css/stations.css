@@ -1243,3 +1243,69 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* -------- additive vs. subtractive (A/B pane picker) -------- */
+
+.ab-pane-header {
+  display: block;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 1rem;
+  font: inherit;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.ab-pane-header:hover {
+  border-color: var(--accent, var(--accent-default));
+}
+
+.ab-pane-header:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.ab-pane-dot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.ab-pane.active .ab-pane-header {
+  color: var(--accent, var(--accent-default));
+  background: color-mix(in srgb, var(--accent, var(--accent-default)) 16%, transparent);
+  border-color: var(--accent, var(--accent-default));
+}
+
+.ab-pane.active .ab-pane-dot {
+  opacity: 1;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* The silent pane stays interactive (its own controls still switch to it —
+   see js) but reads clearly as "not what you're hearing right now". */
+.ab-pane:not(.active) .ab-pane-body {
+  opacity: 0.4;
+  filter: saturate(0.4);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.ab-pane.active .ab-pane-body {
+  opacity: 1;
+  filter: none;
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}

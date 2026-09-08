@@ -29,35 +29,46 @@ export function mount(container, { audioEngine, accent }) {
     <p class="prompt">
       Two roads to a similar kind of tone. On the left, start silent and <strong>add</strong>
       harmonics one at a time. On the right, start with a harmonically-rich sawtooth and
-      <strong>subtract</strong> the highs with a filter. Toggle which one you're actually hearing —
-      but watch both spectra the whole time. That's where "adding" and "subtracting" actually differ.
+      <strong>subtract</strong> the highs with a filter. Tap a panel's title to hear it — the
+      greyed-out one is silent — or just start turning its knobs; either side switches to itself
+      automatically. Watch both spectra the whole time: that's where "adding" and "subtracting"
+      actually differ.
     </p>
 
-    <div class="preset-row" id="as-toggle"></div>
-
-    <div class="fft-pair">
-      <div class="fft-pane">
-        <div class="osc-control-label">Additive — Harmonics</div>
-        <div class="harmonic-bars" id="as-add-bars"></div>
-        <canvas class="spectrum-canvas" id="as-add-canvas" width="600" height="160"
-          role="img" aria-label="Live frequency spectrum of the additive recipe"></canvas>
-        <div class="spectrum-axis" id="as-add-axis"></div>
-      </div>
-      <div class="fft-pane">
-        <div class="osc-control-label">Subtractive — Filtered Sawtooth</div>
-        <div class="osc-control">
-          <div class="big-readout" id="as-cutoff-readout">${formatHz(DEFAULT_CUTOFF)}</div>
-          <input type="range" id="as-cutoff-slider" class="big-slider" min="${MIN_CUTOFF}" max="${MAX_CUTOFF}"
-            value="${DEFAULT_CUTOFF}" step="1" aria-label="Low-pass cutoff frequency in Hertz" />
+    <div class="fft-pair ab-pair">
+      <div class="fft-pane ab-pane" id="as-add-pane">
+        <button class="ab-pane-header" id="as-add-header" type="button" aria-pressed="false">
+          <span class="ab-pane-dot" aria-hidden="true"></span>Additive — Harmonics
+        </button>
+        <div class="ab-pane-body">
+          <div class="harmonic-bars" id="as-add-bars"></div>
+          <canvas class="spectrum-canvas" id="as-add-canvas" width="600" height="160"
+            role="img" aria-label="Live frequency spectrum of the additive recipe"></canvas>
+          <div class="spectrum-axis" id="as-add-axis"></div>
         </div>
-        <canvas class="spectrum-canvas" id="as-sub-canvas" width="600" height="160"
-          role="img" aria-label="Live frequency spectrum of the subtractive recipe"></canvas>
-        <div class="spectrum-axis" id="as-sub-axis"></div>
+      </div>
+      <div class="fft-pane ab-pane" id="as-sub-pane">
+        <button class="ab-pane-header" id="as-sub-header" type="button" aria-pressed="false">
+          <span class="ab-pane-dot" aria-hidden="true"></span>Subtractive — Filtered Sawtooth
+        </button>
+        <div class="ab-pane-body">
+          <div class="osc-control">
+            <div class="big-readout" id="as-cutoff-readout">${formatHz(DEFAULT_CUTOFF)}</div>
+            <input type="range" id="as-cutoff-slider" class="big-slider" min="${MIN_CUTOFF}" max="${MAX_CUTOFF}"
+              value="${DEFAULT_CUTOFF}" step="1" aria-label="Low-pass cutoff frequency in Hertz" />
+          </div>
+          <canvas class="spectrum-canvas" id="as-sub-canvas" width="600" height="160"
+            role="img" aria-label="Live frequency spectrum of the subtractive recipe"></canvas>
+          <div class="spectrum-axis" id="as-sub-axis"></div>
+        </div>
       </div>
     </div>
   `;
 
-  const toggleRow = container.querySelector("#as-toggle");
+  const addPane = container.querySelector("#as-add-pane");
+  const addHeader = container.querySelector("#as-add-header");
+  const subPane = container.querySelector("#as-sub-pane");
+  const subHeader = container.querySelector("#as-sub-header");
   const barsEl = container.querySelector("#as-add-bars");
   const addCanvas = container.querySelector("#as-add-canvas");
   const addAxisEl = container.querySelector("#as-add-axis");
@@ -75,20 +86,8 @@ export function mount(container, { audioEngine, accent }) {
     }
   }
 
-  const MODES = [
-    { id: "additive", label: "▶ Additive" },
-    { id: "subtractive", label: "▶ Subtractive" },
-  ];
-  const modeButtons = new Map();
-  for (const m of MODES) {
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.type = "button";
-    btn.textContent = m.label;
-    btn.addEventListener("click", () => selectMode(m.id, true));
-    toggleRow.appendChild(btn);
-    modeButtons.set(m.id, btn);
-  }
+  addHeader.addEventListener("click", () => selectMode("additive", true));
+  subHeader.addEventListener("click", () => selectMode("subtractive", true));
 
   const active = new Set([1]);
   const bars = new Map();
@@ -149,6 +148,7 @@ export function mount(container, { audioEngine, accent }) {
     if (active.has(k)) active.delete(k);
     else active.add(k);
     renderBars();
+    selectMode("additive", false); // turning an additive knob means you want to hear additive
     interactionCount += 1;
     recordInteraction(STATION_ID);
     maybeComplete();
@@ -163,7 +163,11 @@ export function mount(container, { audioEngine, accent }) {
 
   function selectMode(id, userInitiated) {
     mode = id;
-    for (const [mid, btn] of modeButtons) btn.classList.toggle("active", mid === id);
+    const isAdditive = id === "additive";
+    addPane.classList.toggle("active", isAdditive);
+    subPane.classList.toggle("active", !isAdditive);
+    addHeader.setAttribute("aria-pressed", String(isAdditive));
+    subHeader.setAttribute("aria-pressed", String(!isAdditive));
     applyMode();
     triedModes.add(id);
     if (userInitiated) {
@@ -179,6 +183,7 @@ export function mount(container, { audioEngine, accent }) {
     cutoffReadout.textContent = formatHz(cutoff);
     if (subFilterChain) subFilterChain.setFrequency(cutoff, audioEngine.ctx.currentTime);
     if (userInitiated) {
+      selectMode("subtractive", false); // turning the cutoff knob means you want to hear it
       interactionCount += 1;
       recordInteraction(STATION_ID);
       maybeComplete();
