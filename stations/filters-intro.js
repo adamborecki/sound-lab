@@ -117,7 +117,7 @@ export function mount(container, { audioEngine, accent }) {
     filterChain.setType(current);
     const now = audioEngine.ctx.currentTime;
     filterChain.setFrequency(freq, now);
-    filterChain.setQ(current === "bandpass" ? clamp(freq / BANDPASS_BANDWIDTH, 0.15, 40) : 0.7071, now);
+    filterChain.setQ(current === "bandpass" ? clamp(freq / BANDPASS_BANDWIDTH, 0.15, 40) : 0.3, now);
   }
 
   function selectType(id, userInitiated) {

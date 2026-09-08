@@ -220,7 +220,6 @@ export function mount(container, { audioEngine, accent }) {
     subOsc.frequency.value = FUNDAMENTAL_HZ;
     subFilterChain = createFilterChain(ctx, "lowpass");
     subFilterChain.setFrequency(cutoff, ctx.currentTime, 0);
-    subFilterChain.setQ(0.7071, ctx.currentTime, 0);
     subGain = ctx.createGain();
     subGain.gain.value = 0;
     subOsc.connect(subFilterChain.input);

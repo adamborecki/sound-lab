@@ -209,7 +209,6 @@ export function mount(container, { audioEngine, accent }) {
 
     filterChain = createFilterChain(ctx, "lowpass");
     filterChain.setFrequency(cutoff, ctx.currentTime, 0);
-    filterChain.setQ(0.7071, ctx.currentTime, 0); // Butterworth-ish — flat passband, no resonant peak
     filterChain.output.connect(audioEngine.masterGain);
 
     localAnalyser = ctx.createAnalyser();
