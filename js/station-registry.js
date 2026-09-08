@@ -192,7 +192,7 @@ export const stations = [
   },
   {
     id: "additive-subtractive",
-    title: "Additive vs. Subtractive Synthesis",
+    title: "Additive Synthesis vs. Subtractive Synthesis",
     category: "synthesis",
     purpose: "Build the same kind of tone two ways: add harmonics, or filter a rich source.",
     day: 4,
