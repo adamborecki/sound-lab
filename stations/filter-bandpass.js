@@ -6,7 +6,7 @@ import {
   buildSpectrogramFreqAxis,
 } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
-import { createFilterChain } from "../js/filter-chain.js";
+import { createFilterChain, bandpassQ } from "../js/filter-chain.js";
 import { getLoopBuffer } from "../js/loop-source.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
@@ -204,14 +204,11 @@ export function mount(container, { audioEngine, accent }) {
     }
   }
 
-  // Q relates to bandwidth as Q = center / bandwidth (the standard
-  // constant-skirt bandpass relation) — clamped so an extreme bandwidth
-  // slider position can't push the filter into pathological behavior.
   function applyFilterParams() {
     if (!filterChain) return;
     const now = audioEngine.ctx.currentTime;
     filterChain.setFrequency(center, now);
-    filterChain.setQ(clamp(center / bandwidth, 0.15, 40), now);
+    filterChain.setQ(bandpassQ(center, bandwidth), now);
   }
 
   function setCenter(hz, userInitiated) {
@@ -247,7 +244,7 @@ export function mount(container, { audioEngine, accent }) {
 
     filterChain = createFilterChain(ctx, "bandpass");
     filterChain.setFrequency(center, ctx.currentTime, 0);
-    filterChain.setQ(clamp(center / bandwidth, 0.15, 40), ctx.currentTime, 0);
+    filterChain.setQ(bandpassQ(center, bandwidth), ctx.currentTime, 0);
     filterChain.output.connect(audioEngine.masterGain);
 
     localAnalyser = ctx.createAnalyser();

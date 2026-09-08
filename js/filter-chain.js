@@ -13,15 +13,29 @@
 // FREQ_COMPENSATION ratios below (measured the same way, stable across
 // 100 Hz-12 kHz) pull the actual -3 dB point back to line up with the
 // frequency a station displays — without them, "cutoff: 1000 Hz" would
-// visibly cut off closer to ~1100 Hz. Band-pass doesn't need this — its
-// peak stays essentially centered regardless of Q.
+// visibly cut off closer to ~1100 Hz. Band-pass's *peak position* doesn't
+// need this — it stays essentially centered regardless of Q — but its
+// *bandwidth* has the same kind of compounding problem: 4 identical
+// bandpass stages at the same Q narrow the cascade's actual -3 dB width
+// to less than half of what a single stage's Q = center/bandwidth would
+// give (measured ~2.2x narrower, stable across the practical range) —
+// see bandpassQ below.
 const STAGES = 4;
 const STAGE_Q = 0.3;
+const BANDPASS_BW_COMPENSATION = 2.2;
 const FREQ_COMPENSATION = {
   lowpass: 1.104,
   highpass: 0.906,
   bandpass: 1,
 };
+
+// The Q to feed a 4-stage bandpass chain so its actual -3 dB bandwidth
+// matches `bandwidth`, not the ~2.2x-narrower result naive Q = center /
+// bandwidth would give once cascaded.
+export function bandpassQ(center, bandwidth, min = 0.15, max = 40) {
+  const q = center / (bandwidth * BANDPASS_BW_COMPENSATION);
+  return Math.min(max, Math.max(min, q));
+}
 
 export function createFilterChain(ctx, type, stageCount = STAGES) {
   const nodes = [];

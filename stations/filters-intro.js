@@ -1,6 +1,6 @@
 import { drawSpectrum, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
-import { createFilterChain } from "../js/filter-chain.js";
+import { createFilterChain, bandpassQ } from "../js/filter-chain.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
@@ -117,7 +117,7 @@ export function mount(container, { audioEngine, accent }) {
     filterChain.setType(current);
     const now = audioEngine.ctx.currentTime;
     filterChain.setFrequency(freq, now);
-    filterChain.setQ(current === "bandpass" ? clamp(freq / BANDPASS_BANDWIDTH, 0.15, 40) : 0.3, now);
+    filterChain.setQ(current === "bandpass" ? bandpassQ(freq, BANDPASS_BANDWIDTH) : 0.3, now);
   }
 
   function selectType(id, userInitiated) {
