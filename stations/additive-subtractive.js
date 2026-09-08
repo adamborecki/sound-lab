@@ -1,4 +1,5 @@
 import { drawSpectrum, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
+import { createFilterChain } from "../js/filter-chain.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
@@ -118,7 +119,7 @@ export function mount(container, { audioEngine, accent }) {
   let addAnalyser = null;
   let stopAddViz = null;
   let subOsc = null;
-  let subFilter = null;
+  let subFilterChain = null;
   let subGain = null;
   let subAnalyser = null;
   let stopSubViz = null;
@@ -176,7 +177,7 @@ export function mount(container, { audioEngine, accent }) {
     cutoff = clamp(Math.round(hz), MIN_CUTOFF, MAX_CUTOFF);
     cutoffSlider.value = String(cutoff);
     cutoffReadout.textContent = formatHz(cutoff);
-    if (subFilter) subFilter.frequency.setTargetAtTime(cutoff, audioEngine.ctx.currentTime, 0.02);
+    if (subFilterChain) subFilterChain.setFrequency(cutoff, audioEngine.ctx.currentTime);
     if (userInitiated) {
       interactionCount += 1;
       recordInteraction(STATION_ID);
@@ -217,18 +218,17 @@ export function mount(container, { audioEngine, accent }) {
     subOsc = ctx.createOscillator();
     subOsc.type = "sawtooth";
     subOsc.frequency.value = FUNDAMENTAL_HZ;
-    subFilter = ctx.createBiquadFilter();
-    subFilter.type = "lowpass";
-    subFilter.frequency.value = cutoff;
-    subFilter.Q.value = 0.7071;
+    subFilterChain = createFilterChain(ctx, "lowpass");
+    subFilterChain.setFrequency(cutoff, ctx.currentTime, 0);
+    subFilterChain.setQ(0.7071, ctx.currentTime, 0);
     subGain = ctx.createGain();
     subGain.gain.value = 0;
-    subOsc.connect(subFilter);
-    subFilter.connect(subGain).connect(audioEngine.masterGain);
+    subOsc.connect(subFilterChain.input);
+    subFilterChain.output.connect(subGain).connect(audioEngine.masterGain);
     subAnalyser = ctx.createAnalyser();
     subAnalyser.fftSize = 8192;
     subAnalyser.smoothingTimeConstant = 0.6;
-    subFilter.connect(subAnalyser);
+    subFilterChain.output.connect(subAnalyser);
     subOsc.start();
     stopSubViz = drawSpectrum(subCanvas, subAnalyser, {
       color: accent,
@@ -265,7 +265,7 @@ export function mount(container, { audioEngine, accent }) {
     }
     if (addGain) addGain.disconnect();
     if (addAnalyser) addAnalyser.disconnect();
-    if (subFilter) subFilter.disconnect();
+    if (subFilterChain) subFilterChain.disconnect();
     if (subGain) subGain.disconnect();
     if (subAnalyser) subAnalyser.disconnect();
   };

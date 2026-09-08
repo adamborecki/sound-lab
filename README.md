@@ -11,7 +11,9 @@ Milestone 5: shell, shared audio engine, progress tracking, twenty-five stations
 - Day 3 — Harmonics, Beating Patterns, Spectrum Analyzer, Spectrogram, FFT: Time ↔ Frequency
 - Day 4 — Additive vs. Subtractive Synthesis, Filters: Subtractive Synthesis, Low-Pass Filter, High-Pass Filter, Band-Pass Filter
 
-Day 4 adds subtractive synthesis via three filter stations (Low-Pass, High-Pass, Band-Pass — cutoff only for the first two, center frequency + bandwidth for Band-Pass, with `Q = center / bandwidth`), a lighter "Filters" overview station that teases all three with a type selector over white noise, and an Additive vs. Subtractive Synthesis station that runs both techniques side by side on the same target pitch (toggle which one is actually audible; both panels' spectra stay live regardless, via a pre-mute analyser tap — the same trick Polarity uses for its trigger reference). The three filter deep-dives share a `white noise / sawtooth tone / synthesized music loop` source picker — the loop is a short, fully-synthesized kick/snare/hihat/bass/bleep groove (`js/loop-source.js`, rendered once per AudioContext via `OfflineAudioContext` and cached) so a filter sweep has something musical, not just noise, to act on.
+Day 4 adds subtractive synthesis via three filter stations (Low-Pass, High-Pass, Band-Pass — cutoff only for the first two, center frequency + bandwidth for Band-Pass, with `Q = center / bandwidth`), a lighter "Filters" overview station that teases all three with an icon type selector over white noise, and an Additive vs. Subtractive Synthesis station that runs both techniques side by side on the same target pitch (toggle which one is actually audible; both panels' spectra stay live regardless, via a pre-mute analyser tap — the same trick Polarity uses for its trigger reference). The three filter deep-dives default to and share a `musical loop / sawtooth tone / white noise` source picker — the loop is a short, fully-synthesized kick/snare/hihat/bass/bleep groove (`js/loop-source.js`, rendered once per AudioContext via `OfflineAudioContext` and cached) so a filter sweep has something musical, not just noise, to act on.
+
+Every filter in Day 4 (including the Subtractive panel of Additive vs. Subtractive) runs through `js/filter-chain.js`, which cascades 4 identical BiquadFilterNodes in series instead of using one — a single biquad is only 12 dB/octave, much gentler than "filter" evokes; 4 stages gives a dramatically steeper ~48 dB/octave that reads clearly in the spectrum/spectrogram. Filters: Subtractive Synthesis's type selector and each filter station's header now show a small response-curve icon (`lowpass`/`highpass`/`bandpass` added to `js/wave-icons.js`, same pattern as the oscillator waveform icons). Also fixed along the way: `.chip.active` had no visual style at all — every `.chip`-based picker across the app (including these new ones, and FFT's pre-existing recipe buttons) was silently missing its selected-state highlight.
 
 Phase & Polarity split into two stations: Phase keeps the continuous 0-360° slider; Polarity is a binary invert toggle on a single tone (multiplying by -1, no sideways shift), with a flip animation and copy calling out that a lone tone's polarity is inaudible — it only matters combined with something else.
 
@@ -61,7 +63,8 @@ js/
   visualizers.js        waveform / spectrum / spectrogram canvas rendering
   pulse-wave.js          shared rectangular-pulse Fourier series (Oscillator + Pulse Wave)
   loop-source.js          synthesized drum/bass/bleep loop, rendered once via OfflineAudioContext
-  wave-icons.js          shared oscillator waveform SVG icons
+  filter-chain.js         cascades N identical BiquadFilterNodes for a steeper roll-off
+  wave-icons.js          shared oscillator waveform + filter-response SVG icons
   utils.js               small shared helpers
 stations/
   sound-waves.js       longitudinal (particles) vs. transverse, compression/rarefaction

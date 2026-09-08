@@ -264,6 +264,12 @@
   border-color: var(--accent, var(--accent-default));
 }
 
+.chip.active {
+  border-color: var(--accent, var(--accent-default));
+  background: color-mix(in srgb, var(--accent, var(--accent-default)) 25%, transparent);
+  box-shadow: 0 0 12px -4px var(--accent, var(--accent-default));
+}
+
 .wave-btn {
   display: flex;
   flex-direction: column;
@@ -1027,6 +1033,22 @@
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.filter-shape-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--accent, var(--accent-default));
+  font-weight: 700;
+  margin: 0 0 1.25rem;
+}
+
+.filter-shape-badge .wave-icon {
+  width: 2.2rem;
+  height: 1.1rem;
+  color: inherit;
 }
 
 .pulse-section {

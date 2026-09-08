@@ -5,6 +5,8 @@ import {
   logPositionForFreq,
   buildSpectrogramFreqAxis,
 } from "../js/visualizers.js";
+import { waveIconSvg } from "../js/wave-icons.js";
+import { createFilterChain } from "../js/filter-chain.js";
 import { getLoopBuffer } from "../js/loop-source.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
@@ -36,6 +38,8 @@ export function mount(container, { audioEngine, accent }) {
       subtractive synthesis in its simplest form. Drag the cutoff down and watch the spectrum's
       top get chopped off.
     </p>
+
+    <div class="filter-shape-badge">${waveIconSvg("lowpass")}<span>Low-Pass Response</span></div>
 
     <div class="preset-row" id="lp-sources"></div>
 
@@ -86,12 +90,12 @@ export function mount(container, { audioEngine, accent }) {
     buttons.set(s.id, btn);
   }
 
-  let current = "white";
+  let current = "loop";
   let cutoff = DEFAULT_CUTOFF;
   let interactionCount = 0;
   const triedSources = new Set();
 
-  let filterNode = null;
+  let filterChain = null;
   let localAnalyser = null;
   let stopSpectrumViz = null;
   let stopSpectrogramViz = null;
@@ -132,7 +136,7 @@ export function mount(container, { audioEngine, accent }) {
     const ctx = audioEngine.ctx;
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    gain.connect(filterNode);
+    gain.connect(filterChain.input);
 
     if (id === "white") {
       const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
@@ -172,7 +176,7 @@ export function mount(container, { audioEngine, accent }) {
     const changed = id !== current;
     if (changed) {
       applySelection(id);
-      if (filterNode) {
+      if (filterChain) {
         stopCurrentSource();
         startSource(id);
       }
@@ -189,7 +193,7 @@ export function mount(container, { audioEngine, accent }) {
     cutoff = clamp(Math.round(hz), MIN_CUTOFF, MAX_CUTOFF);
     slider.value = String(cutoff);
     readout.textContent = formatHz(cutoff);
-    if (filterNode) filterNode.frequency.setTargetAtTime(cutoff, audioEngine.ctx.currentTime, 0.02);
+    if (filterChain) filterChain.setFrequency(cutoff, audioEngine.ctx.currentTime);
     if (userInitiated) {
       interactionCount += 1;
       recordInteraction(STATION_ID);
@@ -200,19 +204,18 @@ export function mount(container, { audioEngine, accent }) {
   slider.addEventListener("input", () => setCutoff(Number(slider.value), true));
 
   function setupAudio() {
-    if (!audioEngine.isStarted || filterNode) return;
+    if (!audioEngine.isStarted || filterChain) return;
     const ctx = audioEngine.ctx;
 
-    filterNode = ctx.createBiquadFilter();
-    filterNode.type = "lowpass";
-    filterNode.frequency.value = cutoff;
-    filterNode.Q.value = 0.7071; // Butterworth — flat passband, no resonant peak
-    filterNode.connect(audioEngine.masterGain);
+    filterChain = createFilterChain(ctx, "lowpass");
+    filterChain.setFrequency(cutoff, ctx.currentTime, 0);
+    filterChain.setQ(0.7071, ctx.currentTime, 0); // Butterworth-ish — flat passband, no resonant peak
+    filterChain.output.connect(audioEngine.masterGain);
 
     localAnalyser = ctx.createAnalyser();
     localAnalyser.fftSize = 8192;
     localAnalyser.smoothingTimeConstant = 0.6;
-    filterNode.connect(localAnalyser);
+    filterChain.output.connect(localAnalyser);
 
     stopSpectrumViz = drawSpectrum(spectrumCanvas, localAnalyser, {
       color: accent,
@@ -244,7 +247,7 @@ export function mount(container, { audioEngine, accent }) {
     if (stopSpectrumViz) stopSpectrumViz();
     if (stopSpectrogramViz) stopSpectrogramViz();
     stopCurrentSource();
-    if (filterNode) filterNode.disconnect();
+    if (filterChain) filterChain.disconnect();
     if (localAnalyser) localAnalyser.disconnect();
   };
 }

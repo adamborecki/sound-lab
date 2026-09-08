@@ -5,6 +5,8 @@ import {
   logPositionForFreq,
   buildSpectrogramFreqAxis,
 } from "../js/visualizers.js";
+import { waveIconSvg } from "../js/wave-icons.js";
+import { createFilterChain } from "../js/filter-chain.js";
 import { getLoopBuffer } from "../js/loop-source.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
@@ -39,6 +41,8 @@ export function mount(container, { audioEngine, accent }) {
       value, and cuts everything above <em>and</em> below it. Bandwidth controls how wide that slice
       is — narrow it down and only a thin, almost whistle-like band survives.
     </p>
+
+    <div class="filter-shape-badge">${waveIconSvg("bandpass")}<span>Band-Pass Response</span></div>
 
     <div class="preset-row" id="bp-sources"></div>
 
@@ -98,13 +102,13 @@ export function mount(container, { audioEngine, accent }) {
     buttons.set(s.id, btn);
   }
 
-  let current = "white";
+  let current = "loop";
   let center = DEFAULT_CENTER;
   let bandwidth = DEFAULT_BANDWIDTH;
   let interactionCount = 0;
   const triedSources = new Set();
 
-  let filterNode = null;
+  let filterChain = null;
   let localAnalyser = null;
   let stopSpectrumViz = null;
   let stopSpectrogramViz = null;
@@ -145,7 +149,7 @@ export function mount(container, { audioEngine, accent }) {
     const ctx = audioEngine.ctx;
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    gain.connect(filterNode);
+    gain.connect(filterChain.input);
 
     if (id === "white") {
       const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
@@ -187,7 +191,7 @@ export function mount(container, { audioEngine, accent }) {
     const changed = id !== current;
     if (changed) {
       applySelection(id);
-      if (filterNode) {
+      if (filterChain) {
         stopCurrentSource();
         startSource(id);
       }
@@ -204,10 +208,10 @@ export function mount(container, { audioEngine, accent }) {
   // constant-skirt bandpass relation) — clamped so an extreme bandwidth
   // slider position can't push the filter into pathological behavior.
   function applyFilterParams() {
-    if (!filterNode) return;
+    if (!filterChain) return;
     const now = audioEngine.ctx.currentTime;
-    filterNode.frequency.setTargetAtTime(center, now, 0.02);
-    filterNode.Q.setTargetAtTime(clamp(center / bandwidth, 0.15, 40), now, 0.02);
+    filterChain.setFrequency(center, now);
+    filterChain.setQ(clamp(center / bandwidth, 0.15, 40), now);
   }
 
   function setCenter(hz, userInitiated) {
@@ -238,19 +242,18 @@ export function mount(container, { audioEngine, accent }) {
   bwSlider.addEventListener("input", () => setBandwidth(Number(bwSlider.value), true));
 
   function setupAudio() {
-    if (!audioEngine.isStarted || filterNode) return;
+    if (!audioEngine.isStarted || filterChain) return;
     const ctx = audioEngine.ctx;
 
-    filterNode = ctx.createBiquadFilter();
-    filterNode.type = "bandpass";
-    filterNode.frequency.value = center;
-    filterNode.Q.value = clamp(center / bandwidth, 0.15, 40);
-    filterNode.connect(audioEngine.masterGain);
+    filterChain = createFilterChain(ctx, "bandpass");
+    filterChain.setFrequency(center, ctx.currentTime, 0);
+    filterChain.setQ(clamp(center / bandwidth, 0.15, 40), ctx.currentTime, 0);
+    filterChain.output.connect(audioEngine.masterGain);
 
     localAnalyser = ctx.createAnalyser();
     localAnalyser.fftSize = 8192;
     localAnalyser.smoothingTimeConstant = 0.6;
-    filterNode.connect(localAnalyser);
+    filterChain.output.connect(localAnalyser);
 
     stopSpectrumViz = drawSpectrum(spectrumCanvas, localAnalyser, {
       color: accent,
@@ -282,7 +285,7 @@ export function mount(container, { audioEngine, accent }) {
     if (stopSpectrumViz) stopSpectrumViz();
     if (stopSpectrogramViz) stopSpectrogramViz();
     stopCurrentSource();
-    if (filterNode) filterNode.disconnect();
+    if (filterChain) filterChain.disconnect();
     if (localAnalyser) localAnalyser.disconnect();
   };
 }

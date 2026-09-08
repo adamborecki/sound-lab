@@ -1,4 +1,6 @@
 import { drawSpectrum, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
+import { waveIconSvg } from "../js/wave-icons.js";
+import { createFilterChain } from "../js/filter-chain.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
@@ -13,9 +15,9 @@ const BANDPASS_BANDWIDTH = 600;
 const COMPLETE_AFTER_INTERACTIONS = 5;
 
 const TYPES = [
-  { id: "lowpass", label: "Low-Pass", controlLabel: "Cutoff Frequency" },
-  { id: "highpass", label: "High-Pass", controlLabel: "Cutoff Frequency" },
-  { id: "bandpass", label: "Band-Pass", controlLabel: "Center Frequency" },
+  { id: "lowpass", label: "Low-Pass", icon: "lowpass", controlLabel: "Cutoff Frequency" },
+  { id: "highpass", label: "High-Pass", icon: "highpass", controlLabel: "Cutoff Frequency" },
+  { id: "bandpass", label: "Band-Pass", icon: "bandpass", controlLabel: "Center Frequency" },
 ];
 
 function formatHzLabel(hz) {
@@ -31,7 +33,7 @@ export function mount(container, { audioEngine, accent }) {
       A filter's <em>cutoff</em> is where it draws that line; everything past it is attenuated.
     </p>
 
-    <div class="preset-row" id="fi-types"></div>
+    <div class="wave-button-row" id="fi-types"></div>
     <p class="prompt" id="fi-type-desc"></p>
 
     <div class="osc-control">
@@ -78,9 +80,9 @@ export function mount(container, { audioEngine, accent }) {
   const buttons = new Map();
   for (const t of TYPES) {
     const btn = document.createElement("button");
-    btn.className = "chip";
+    btn.className = "wave-btn";
     btn.type = "button";
-    btn.textContent = t.label;
+    btn.innerHTML = `${waveIconSvg(t.icon)}<span>${t.label}</span>`;
     btn.addEventListener("click", () => selectType(t.id, true));
     typeRow.appendChild(btn);
     buttons.set(t.id, btn);
@@ -91,7 +93,7 @@ export function mount(container, { audioEngine, accent }) {
   let interactionCount = 0;
   const triedTypes = new Set();
 
-  let filterNode = null;
+  let filterChain = null;
   let localAnalyser = null;
   let stopViz = null;
   let noiseVoice = null;
@@ -111,15 +113,11 @@ export function mount(container, { audioEngine, accent }) {
   }
 
   function applyFilterParams() {
-    if (!filterNode) return;
-    filterNode.type = current;
+    if (!filterChain) return;
+    filterChain.setType(current);
     const now = audioEngine.ctx.currentTime;
-    filterNode.frequency.setTargetAtTime(freq, now, 0.02);
-    filterNode.Q.setTargetAtTime(
-      current === "bandpass" ? clamp(freq / BANDPASS_BANDWIDTH, 0.15, 40) : 0.7071,
-      now,
-      0.02,
-    );
+    filterChain.setFrequency(freq, now);
+    filterChain.setQ(current === "bandpass" ? clamp(freq / BANDPASS_BANDWIDTH, 0.15, 40) : 0.7071, now);
   }
 
   function selectType(id, userInitiated) {
@@ -150,24 +148,24 @@ export function mount(container, { audioEngine, accent }) {
   slider.addEventListener("input", () => setFreq(Number(slider.value), true));
 
   function setupAudio() {
-    if (!audioEngine.isStarted || filterNode) return;
+    if (!audioEngine.isStarted || filterChain) return;
     const ctx = audioEngine.ctx;
 
-    filterNode = ctx.createBiquadFilter();
+    filterChain = createFilterChain(ctx, current);
     applyFilterParams();
-    filterNode.connect(audioEngine.masterGain);
+    filterChain.output.connect(audioEngine.masterGain);
 
     localAnalyser = ctx.createAnalyser();
     localAnalyser.fftSize = 8192;
     localAnalyser.smoothingTimeConstant = 0.6;
-    filterNode.connect(localAnalyser);
+    filterChain.output.connect(localAnalyser);
 
     noiseVoice = audioEngine.createNoiseVoice({ gain: 0, color: "white" });
     // createNoiseVoice connects straight to masterGain — mute that path and
     // tap its raw output into the filter instead, so noise reaches the
     // speakers only after being shaped.
     noiseVoice.gainNode.disconnect();
-    noiseVoice.gainNode.connect(filterNode);
+    noiseVoice.gainNode.connect(filterChain.input);
     noiseVoice.setGain(0.28);
 
     stopViz = drawSpectrum(canvas, localAnalyser, {
@@ -190,7 +188,7 @@ export function mount(container, { audioEngine, accent }) {
     window.removeEventListener("soundlab:started", setupAudio);
     if (stopViz) stopViz();
     if (noiseVoice) noiseVoice.stop();
-    if (filterNode) filterNode.disconnect();
+    if (filterChain) filterChain.disconnect();
     if (localAnalyser) localAnalyser.disconnect();
   };
 }
