@@ -9,7 +9,7 @@ import {
 import { recordInteraction, markComplete, recordCheck } from "../js/progress.js";
 
 const STATION_ID = "harmonics";
-const FUNDAMENTAL_HZ = 110;
+const FUNDAMENTAL_HZ = 220; // one octave up from the original 110 Hz — too quiet/felt-not-heard on small built-in speakers
 const PARTIAL_COUNT = 9;
 const MIN_HZ_AXIS = 20;
 const MAX_HZ_AXIS = 2000;

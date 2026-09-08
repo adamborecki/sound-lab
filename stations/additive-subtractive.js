@@ -5,7 +5,12 @@ import { recordInteraction, markComplete } from "../js/progress.js";
 
 const STATION_ID = "additive-subtractive";
 const FUNDAMENTAL_HZ = 220;
-const PARTIALS = [1, 3, 5, 7, 9];
+// All 9 partials, not just odd ones — the subtractive side starts from a
+// sawtooth (every harmonic present), so the additive side needs the same
+// full set to actually converge toward the same target timbre at full
+// strength. Odd-only would build toward a square-ish sound instead, which
+// undercuts the "two roads to a similar tone" comparison.
+const PARTIALS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const MIN_CUTOFF = 150;
 const MAX_CUTOFF = 4000;
 const DEFAULT_CUTOFF = 4000;
