@@ -11,6 +11,11 @@ const overlayStartBtn = document.getElementById("overlay-start-btn");
 const stopBtn = document.getElementById("stop-all");
 
 let currentUnmount = null;
+// Has renderFloor() actually run this session? Guards against treating a
+// fresh deep link straight into a station as "came from floor" — that would
+// send the back link's history.back() off the site entirely, since there's
+// no real floor entry behind it in session history.
+let floorRendered = false;
 
 function sectionHeading(text) {
   const h = document.createElement("h2");
@@ -100,7 +105,7 @@ function renderFloor() {
   }
 }
 
-async function renderStation(id) {
+async function renderStation(id, cameFromFloor) {
   const station = getStation(id);
   if (!station) {
     location.hash = "#/";
@@ -118,10 +123,22 @@ async function renderStation(id) {
   const header = document.createElement("div");
   header.className = "stage-header";
   header.innerHTML = `
-    <a class="back-link" href="#/">← Floor</a>
+    <a class="back-link" href="#/">← Home</a>
     <h2>${station.title}</h2>
   `;
   stageEl.appendChild(header);
+
+  // A plain hash link always works, but it can't restore the floor's scroll
+  // position the way a real back-navigation does. When we know this station
+  // was reached by clicking a card (not a direct/deep link), intercept the
+  // click and use history.back() instead — same destination, but the
+  // browser's native scroll restoration puts the floor back where it was.
+  if (cameFromFloor) {
+    header.querySelector(".back-link").addEventListener("click", (e) => {
+      e.preventDefault();
+      history.back();
+    });
+  }
 
   const body = document.createElement("div");
   body.className = "stage-body";
@@ -138,9 +155,10 @@ function route() {
   const stationMatch = hash.match(/^#\/station\/([\w-]+)/);
 
   if (stationMatch) {
+    const cameFromFloor = floorRendered;
     floorEl.hidden = true;
     stageEl.hidden = false;
-    renderStation(stationMatch[1]);
+    renderStation(stationMatch[1], cameFromFloor);
   } else {
     if (currentUnmount) {
       currentUnmount();
@@ -148,6 +166,7 @@ function route() {
     }
     clearActiveStation();
     renderFloor();
+    floorRendered = true;
     floorEl.hidden = false;
     stageEl.hidden = true;
   }
