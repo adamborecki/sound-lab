@@ -282,6 +282,16 @@ export const stations = [
     accent: "#FF6BC4",
   },
   {
+    id: "filter-resonance",
+    title: "Filter Resonance",
+    category: "filters",
+    purpose: "The control Low-Pass/High-Pass were missing: Q, emphasizing frequencies right at the cutoff.",
+    day: 5,
+    section: "EQ: Peak, Shelf & Notch",
+    module: "../stations/filter-resonance.js",
+    accent: "#8C9EFF",
+  },
+  {
     id: "eq-intro",
     title: "EQ: Peak, Shelf & Notch",
     category: "filters",
