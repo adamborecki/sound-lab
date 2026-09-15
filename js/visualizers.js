@@ -413,6 +413,23 @@ export function createLevelFollower(analyser) {
   };
 }
 
+// Like createLevelFollower, but returns the raw *signed* instantaneous
+// sample instead of a peak magnitude. Peak-detection throws away sign,
+// which is fine for a tremolo level (always ≥ 0) but wrong for looking at
+// a modulator's own waveform: abs() folds a sawtooth's falling half up on
+// top of its rising half (making it look like a triangle) and makes a
+// bipolar square wave indistinguishable from a unipolar one. Reading one
+// recent sample per frame is plenty for anything slow enough to need this
+// (an LFO, not audio-rate) — no windowed analysis required. Range is ±1;
+// scale it yourself against whatever "1.0" should mean for your station.
+export function createSignalSampler(analyser) {
+  const data = new Float32Array(analyser.fftSize);
+  return function getSignal() {
+    analyser.getFloatTimeDomainData(data);
+    return data[data.length - 1];
+  };
+}
+
 // Renders a static "not playing yet" waveform placeholder, no animation loop.
 export function drawIdleMessage(canvas, message) {
   const ctx = canvas.getContext("2d");

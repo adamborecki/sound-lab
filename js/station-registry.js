@@ -342,6 +342,16 @@ export const stations = [
     accent: "#6ED0FF",
   },
   {
+    id: "lfo-shape",
+    title: "LFO Shape",
+    category: "modulation",
+    purpose: "The LFO has its own waveform too — separate from the carrier's. See both at once.",
+    day: 5,
+    section: "Modulation: LFOs",
+    module: "../stations/lfo-shape.js",
+    accent: "#D9FF6B",
+  },
+  {
     id: "adsr-release",
     title: "Release",
     category: "envelope",
