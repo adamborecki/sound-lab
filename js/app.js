@@ -43,12 +43,22 @@ function stationGrid(list) {
 function renderFloor() {
   floorEl.innerHTML = "";
 
-  const dayStations = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  // Grouped in the order sections first appear in station-registry.js, not
+  // a fixed day list — so a day can split into multiple named sections
+  // (see Day 5's "Modulation: LFOs" / "Modulation: ADSR") just by giving
+  // some of its stations a `section` override, no changes needed here.
+  const sections = new Map();
   const finishStations = [];
   for (const s of stations) {
     if (s.hidden) continue;
-    if (s.finish) finishStations.push(s);
-    else if (s.day) dayStations[s.day].push(s);
+    if (s.finish) {
+      finishStations.push(s);
+      continue;
+    }
+    if (!s.day) continue;
+    const heading = s.section || `Day ${s.day}`;
+    if (!sections.has(heading)) sections.set(heading, []);
+    sections.get(heading).push(s);
   }
 
   const floorIds = stations.filter((s) => !s.finish && !s.hidden).map((s) => s.id);
@@ -80,10 +90,8 @@ function renderFloor() {
     floorEl.appendChild(summary);
   }
 
-  for (const day of [1, 2, 3, 4, 5]) {
-    const list = dayStations[day];
-    if (!list.length) continue;
-    floorEl.appendChild(sectionHeading(`Day ${day}`));
+  for (const [heading, list] of sections) {
+    floorEl.appendChild(sectionHeading(heading));
     floorEl.appendChild(stationGrid(list));
   }
   if (finishStations.length) {

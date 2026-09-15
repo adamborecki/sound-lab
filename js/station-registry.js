@@ -8,7 +8,12 @@
 // station. `finish: true` instead of `day` puts a station in its own Finish
 // section, exempt from the day grouping and the completion count. `hidden:
 // true` removes a station from the floor entirely (module/route still
-// work) without deleting it — see the `finish` entry below.
+// work) without deleting it — see the `finish` entry below. `section` is
+// an optional heading override for stations that share a `day`: entries
+// are grouped into floor sections in the order they first appear in this
+// array, headed by `section` if set, else the default "Day N" — see the
+// Day 5 entries below, which split into "Modulation: LFOs" (first) and
+// "Modulation: ADSR" (second) instead of one flat "Day 5".
 export const stations = [
   {
     id: "sound-waves",
@@ -236,56 +241,12 @@ export const stations = [
     accent: "#C46BFF",
   },
   {
-    id: "adsr-release",
-    title: "Release",
-    category: "envelope",
-    purpose: "How long a note takes to fade after you let go.",
-    day: 5,
-    module: "../stations/adsr-release.js",
-    accent: "#FF8FA3",
-  },
-  {
-    id: "adsr-attack",
-    title: "Attack",
-    category: "envelope",
-    purpose: "How long a note takes to reach full volume after you press.",
-    day: 5,
-    module: "../stations/adsr-attack.js",
-    accent: "#FFB84D",
-  },
-  {
-    id: "adsr-sustain",
-    title: "Sustain",
-    category: "envelope",
-    purpose: "The level a held note settles at — not a time, a level.",
-    day: 5,
-    module: "../stations/adsr-sustain.js",
-    accent: "#7DE8A0",
-  },
-  {
-    id: "adsr-decay",
-    title: "Decay",
-    category: "envelope",
-    purpose: "How long a note takes to fall from its peak to the sustain level.",
-    day: 5,
-    module: "../stations/adsr-decay.js",
-    accent: "#A5A8FF",
-  },
-  {
-    id: "adsr-combined",
-    title: "ADSR: Putting It Together",
-    category: "envelope",
-    purpose: "All four at once — presets, then adjust freely.",
-    day: 5,
-    module: "../stations/adsr-combined.js",
-    accent: "#F5D76E",
-  },
-  {
     id: "lfo-intro",
     title: "LFO: Low-Frequency Oscillator",
     category: "modulation",
     purpose: "A slow oscillator wobbling pitch, volume, or a filter's cutoff.",
     day: 5,
+    section: "Modulation: LFOs",
     module: "../stations/lfo-intro.js",
     accent: "#6EE7E7",
   },
@@ -295,6 +256,7 @@ export const stations = [
     category: "modulation",
     purpose: "An LFO wobbling pitch — the whole harmonic stack moves together.",
     day: 5,
+    section: "Modulation: LFOs",
     module: "../stations/lfo-vibrato.js",
     accent: "#C77DFF",
   },
@@ -304,6 +266,7 @@ export const stations = [
     category: "modulation",
     purpose: "An LFO wobbling volume — too slow for a waveform, easy on an envelope graph.",
     day: 5,
+    section: "Modulation: LFOs",
     module: "../stations/lfo-tremolo.js",
     accent: "#FF9E6E",
   },
@@ -313,8 +276,59 @@ export const stations = [
     category: "modulation",
     purpose: "An LFO wobbling a filter's cutoff — the funk pedal that rocks itself.",
     day: 5,
+    section: "Modulation: LFOs",
     module: "../stations/lfo-autowah.js",
     accent: "#6ED0FF",
+  },
+  {
+    id: "adsr-release",
+    title: "Release",
+    category: "envelope",
+    purpose: "How long a note takes to fade after you let go.",
+    day: 5,
+    section: "Modulation: ADSR",
+    module: "../stations/adsr-release.js",
+    accent: "#FF8FA3",
+  },
+  {
+    id: "adsr-attack",
+    title: "Attack",
+    category: "envelope",
+    purpose: "How long a note takes to reach full volume after you press.",
+    day: 5,
+    section: "Modulation: ADSR",
+    module: "../stations/adsr-attack.js",
+    accent: "#FFB84D",
+  },
+  {
+    id: "adsr-sustain",
+    title: "Sustain",
+    category: "envelope",
+    purpose: "The level a held note settles at — not a time, a level.",
+    day: 5,
+    section: "Modulation: ADSR",
+    module: "../stations/adsr-sustain.js",
+    accent: "#7DE8A0",
+  },
+  {
+    id: "adsr-decay",
+    title: "Decay",
+    category: "envelope",
+    purpose: "How long a note takes to fall from its peak to the sustain level.",
+    day: 5,
+    section: "Modulation: ADSR",
+    module: "../stations/adsr-decay.js",
+    accent: "#A5A8FF",
+  },
+  {
+    id: "adsr-combined",
+    title: "ADSR: Putting It Together",
+    category: "envelope",
+    purpose: "All four at once — presets, then adjust freely.",
+    day: 5,
+    section: "Modulation: ADSR",
+    module: "../stations/adsr-combined.js",
+    accent: "#F5D76E",
   },
   {
     id: "finish",

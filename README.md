@@ -4,17 +4,18 @@ A museum-floor-style site for exploring acoustics and synthesis basics. No build
 
 ## Status
 
-Milestone 6: shell, shared audio engine, progress tracking, thirty-four stations, and a Finish & Submit page. Floor groups stations by **Day 1 / Day 2 / Day 3 / Day 4 / Day 5** — matching the instructor's actual course sequence. Nothing is "required" to gate submission — it's free-choice exploration, and the floor's completion counter and the Finish export just report whatever a visitor actually opened, completed, and interacted with (see `js/station-registry.js` and `js/progress.js`).
+Milestone 6: shell, shared audio engine, progress tracking, thirty-four stations, and a Finish & Submit page. Floor groups stations by **Day 1 / Day 2 / Day 3 / Day 4**, then Day 5 splits into two named sections — **Modulation: LFOs** and **Modulation: ADSR** — instead of one flat "Day 5" (a station's `section` field overrides the default "Day N" heading; see `js/station-registry.js`'s header comment and `js/app.js`'s `renderFloor`, which groups stations by first-appearance order of `section || "Day N"` rather than a fixed day list). Nothing is "required" to gate submission — it's free-choice exploration, and the floor's completion counter and the Finish export just report whatever a visitor actually opened, completed, and interacted with (see `js/station-registry.js` and `js/progress.js`).
 
 - Day 1 — What Is Sound?, Frequency, Amplitude, Decibels: FS vs SPL, Periodic vs. Aperiodic, Octave Machine, Pitch × Loudness
 - Day 2 — Wave Shape Gallery, Pulse Wave, Oscillator, Colors of Noise, Phase, Polarity, Constructive Interference, Destructive Interference
 - Day 3 — Harmonics, Beating Patterns, Spectrum Analyzer, Spectrogram, FFT: Time ↔ Frequency
 - Day 4 — Additive Synthesis vs. Subtractive Synthesis, Filters: Subtractive Synthesis, Low-Pass Filter, High-Pass Filter, Band-Pass Filter
-- Day 5 — Release, Attack, Sustain, Decay, ADSR: Putting It Together, LFO: Low-Frequency Oscillator, Vibrato, Tremolo, Auto-Wah
+- Day 5, Modulation: LFOs — LFO: Low-Frequency Oscillator, Vibrato, Tremolo, Auto-Wah
+- Day 5, Modulation: ADSR — Release, Attack, Sustain, Decay, ADSR: Putting It Together
 
-Day 5 covers envelopes and modulation. ADSR is 5 stations: Release, Attack, Sustain, and Decay each isolate one parameter (the other three held at fixed, sensible defaults) and are meant to be visited in that order, then "Putting It Together" combines all four with presets (Pluck, Slow Pad, Organ, Bowed Swell). Every ADSR station uses a press-and-hold "note pad" (Pointer Events with `setPointerCapture` so a drag off the button still releases cleanly) driving `js/adsr-voice.js`, a shared voice that schedules the attack→decay ramp on press and the release ramp on note-off via `linearRampToValueAtTime`, always anchored to the gain's actual current value first (`setValueAtTime(g.value, now)`) so a fast re-press mid-release doesn't snap. The envelope itself is drawn by a new `drawEnvelope` in `js/visualizers.js` — a scrolling level-vs-time line that samples a plain 0-1 getter once per frame, for anything that moves too slowly for a normal waveform view (which is capped at the analyser's fftSize, a few dozen milliseconds at most) to show at all.
+Day 5 covers modulation and envelopes, LFOs first. LFO is 4 stations: an overview with a target selector (Vibrato/Tremolo/Auto-Wah sharing Rate + Depth controls, swapping between a spectrogram and an envelope-graph visualization depending on target) plus one deep-dive per target. `js/lfo.js` is a tiny shared oscillator-plus-depth-gain pair — connect `.output` straight to whatever AudioParam you want wobbled (frequency for vibrato, gain for tremolo, a filter's frequency for auto-wah); Web Audio sums a direct param connection with whatever base value is already there. Vibrato and Auto-Wah reuse the spectrogram (a slow pitch or cutoff wobble is exactly what a multi-second scrolling frequency-vs-time view is for — vibrato shows the whole harmonic stack riding the wobble together); Auto-Wah runs it over the same synthesized loop from the Day 4 filter stations, through a single resonant bandpass (not the steep 4-stage `filter-chain.js` — that was built for static-cutoff clarity, and modulating it would fight the frequency-compensation math meant for a fixed target). Tremolo needed real work: `AudioParam.value` only reflects *scripted* automation, not an incoming audio-rate connection, so reading the gain node's `.value` for the graph (as ADSR correctly does, since it's pure scripted automation) always reported a flat, wrong number for an LFO-driven gain. Fixed with `createLevelFollower()` in `js/visualizers.js`, a small envelope follower that reads the peak of an analyser's actual samples instead.
 
-LFO is 4 stations: an overview with a target selector (Vibrato/Tremolo/Auto-Wah sharing Rate + Depth controls, swapping between a spectrogram and an envelope-graph visualization depending on target) plus one deep-dive per target. `js/lfo.js` is a tiny shared oscillator-plus-depth-gain pair — connect `.output` straight to whatever AudioParam you want wobbled (frequency for vibrato, gain for tremolo, a filter's frequency for auto-wah); Web Audio sums a direct param connection with whatever base value is already there. Vibrato and Auto-Wah reuse the spectrogram (a slow pitch or cutoff wobble is exactly what a multi-second scrolling frequency-vs-time view is for — vibrato shows the whole harmonic stack riding the wobble together); Auto-Wah runs it over the same synthesized loop from the Day 4 filter stations, through a single resonant bandpass (not the steep 4-stage `filter-chain.js` — that was built for static-cutoff clarity, and modulating it would fight the frequency-compensation math meant for a fixed target). Tremolo needed real work: `AudioParam.value` only reflects *scripted* automation, not an incoming audio-rate connection, so reading the gain node's `.value` for the graph (as ADSR correctly does, since it's pure scripted automation) always reported a flat, wrong number for an LFO-driven gain. Fixed with `createLevelFollower()` in `js/visualizers.js`, a small envelope follower that reads the peak of an analyser's actual samples instead.
+ADSR is 5 stations: Release, Attack, Sustain, and Decay each isolate one parameter (the other three held at fixed, sensible defaults) and are meant to be visited in that order, then "Putting It Together" combines all four with presets (Pluck, Slow Pad, Organ, Bowed Swell). Every ADSR station uses a press-and-hold "note pad" (Pointer Events with `setPointerCapture` so a drag off the button still releases cleanly) driving `js/adsr-voice.js`, a shared voice that schedules the attack→decay ramp on press and the release ramp on note-off via `linearRampToValueAtTime`, always anchored to the gain's actual current value first (`setValueAtTime(g.value, now)`) so a fast re-press mid-release doesn't snap. The envelope itself is drawn by `drawEnvelope` in `js/visualizers.js` — a scrolling level-vs-time line that samples a plain 0-1 getter once per frame, for anything that moves too slowly for a normal waveform view (which is capped at the analyser's fftSize, a few dozen milliseconds at most) to show at all — Tremolo above reuses this same function.
 
 Two CSS bugs surfaced while wiring LFO's target-swapped visualizations: `.spectrogram-row` and `.spectrum-canvas` both set their own `display` property, which — being an *author* rule — silently wins over the browser's built-in `[hidden] { display: none }` even though neither rule is more specific; toggling `.hidden` on either did nothing until an explicit `.spectrogram-row[hidden]` / `.spectrum-canvas[hidden]` override was added (matching the existing `.sg-freq-control[hidden]` pattern from Spectrogram). Also hardened all four `visualizers.js` draw loops (`drawWaveform`/`drawSpectrum`/`drawSpectrogram`/`drawEnvelope`) to skip a frame instead of erroring when their canvas has zero size — exactly what a hidden, `display:none` canvas measures as, which `drawSpectrogram`'s `drawImage` call throws on outright.
 
@@ -79,8 +80,8 @@ js/
   pulse-wave.js          shared rectangular-pulse Fourier series (Oscillator + Pulse Wave)
   loop-source.js          synthesized drum/bass/bleep loop, rendered once via OfflineAudioContext
   filter-chain.js         cascades N identical BiquadFilterNodes for a steeper roll-off
-  adsr-voice.js           shared press/hold voice driven by an Attack/Decay/Sustain/Release envelope
   lfo.js                  shared low-frequency oscillator — connect .output to any AudioParam
+  adsr-voice.js           shared press/hold voice driven by an Attack/Decay/Sustain/Release envelope
   wave-icons.js          shared oscillator waveform + filter-response SVG icons
   utils.js               small shared helpers
 stations/
@@ -109,15 +110,15 @@ stations/
   filter-lowpass.js        cutoff-only low-pass, 3 sources (noise/saw/loop)
   filter-highpass.js       cutoff-only high-pass, same 3 sources
   filter-bandpass.js       center + bandwidth band-pass, same 3 sources
+  lfo-intro.js             Modulation: LFOs overview — target selector, swaps spectrogram/envelope-graph viz
+  lfo-vibrato.js           LFO -> pitch, spectrogram shows the whole harmonic stack wobble
+  lfo-tremolo.js           LFO -> amplitude, envelope graph (waveform view is too fast to show it)
+  lfo-autowah.js           LFO -> filter cutoff, over the same synthesized loop as the filter stations
   adsr-release.js          isolates Release, others fixed
   adsr-attack.js           isolates Attack, others fixed
   adsr-sustain.js          isolates Sustain level, others fixed
   adsr-decay.js            isolates Decay, others fixed
   adsr-combined.js         all four together, plus presets
-  lfo-intro.js             Day 5 overview: target selector, swaps spectrogram/envelope-graph viz
-  lfo-vibrato.js           LFO -> pitch, spectrogram shows the whole harmonic stack wobble
-  lfo-tremolo.js           LFO -> amplitude, envelope graph (waveform view is too fast to show it)
-  lfo-autowah.js           LFO -> filter cutoff, over the same synthesized loop as the filter stations
   finish.js           reflections + JSON export (per-station data, totals, SHA-256 checksum)
 ```
 
