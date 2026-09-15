@@ -12,8 +12,9 @@
 // an optional heading override for stations that share a `day`: entries
 // are grouped into floor sections in the order they first appear in this
 // array, headed by `section` if set, else the default "Day N" — see the
-// Day 5 entries below, which split into "Modulation: LFOs" (first) and
-// "Modulation: ADSR" (second) instead of one flat "Day 5".
+// Day 5 entries below, which split one `day` into four named sections
+// ("EQ: Peak, Shelf & Notch", "Formants: Vowels as Frequency",
+// "Modulation: LFOs", "Modulation: ADSR") instead of one flat "Day 5".
 export const stations = [
   {
     id: "sound-waves",
@@ -239,6 +240,66 @@ export const stations = [
     day: 4,
     module: "../stations/filter-bandpass.js",
     accent: "#C46BFF",
+  },
+  {
+    id: "eq-intro",
+    title: "EQ: Peak, Shelf & Notch",
+    category: "filters",
+    purpose: "Filters that boost or cut instead of cutting outright — the shapes behind an EQ knob.",
+    day: 5,
+    section: "EQ: Peak, Shelf & Notch",
+    module: "../stations/eq-intro.js",
+    accent: "#B6FF6B",
+  },
+  {
+    id: "filter-peak",
+    title: "Parametric EQ (Peak / Bell)",
+    category: "filters",
+    purpose: "Boost or cut a bell-shaped band around one center frequency.",
+    day: 5,
+    section: "EQ: Peak, Shelf & Notch",
+    module: "../stations/filter-peak.js",
+    accent: "#6BFFA1",
+  },
+  {
+    id: "filter-lowshelf",
+    title: "Low Shelf",
+    category: "filters",
+    purpose: "A bass knob — boost or cut everything below a corner frequency by a flat amount.",
+    day: 5,
+    section: "EQ: Peak, Shelf & Notch",
+    module: "../stations/filter-lowshelf.js",
+    accent: "#6BD9FF",
+  },
+  {
+    id: "filter-highshelf",
+    title: "High Shelf",
+    category: "filters",
+    purpose: "A treble knob — boost or cut everything above a corner frequency by a flat amount.",
+    day: 5,
+    section: "EQ: Peak, Shelf & Notch",
+    module: "../stations/filter-highshelf.js",
+    accent: "#FFD36B",
+  },
+  {
+    id: "filter-notch",
+    title: "Notch Filter",
+    category: "filters",
+    purpose: "Band-Pass's evil twin: cut a narrow slice out, keep everything else.",
+    day: 5,
+    section: "EQ: Peak, Shelf & Notch",
+    module: "../stations/filter-notch.js",
+    accent: "#FF6BC4",
+  },
+  {
+    id: "vowel-formants",
+    title: "Vowels as Frequency",
+    category: "filters",
+    purpose: "Sweep one resonant peak through the spectrum and hear a buzz turn into vowels.",
+    day: 5,
+    section: "Formants: Vowels as Frequency",
+    module: "../stations/vowel-formants.js",
+    accent: "#D9A6FF",
   },
   {
     id: "lfo-intro",

@@ -11,6 +11,10 @@ const PATHS = {
   lowpass: "M0 5 L14 5 Q20 5 24 11 Q28 17 40 17",
   highpass: "M0 17 Q12 17 16 11 Q20 5 26 5 L40 5",
   bandpass: "M0 17 Q8 17 12 9 Q16 3 20 3 Q24 3 28 9 Q32 17 40 17",
+  notch: "M0 11 L12 11 Q16 11 20 17 Q24 11 28 11 L40 11",
+  peaking: "M0 11 L12 11 Q16 11 20 5 Q24 11 28 11 L40 11",
+  lowshelf: "M0 5 L14 5 Q20 5 24 11 L40 11",
+  highshelf: "M0 11 L16 11 Q20 11 26 5 L40 5",
 };
 
 export function waveIconSvg(type) {

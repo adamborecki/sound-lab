@@ -308,6 +308,11 @@
   outline-offset: 2px;
 }
 
+.vf-example {
+  color: var(--text-dim);
+  font-size: 0.85em;
+}
+
 .reveal {
   text-align: center;
   color: var(--text-dim);

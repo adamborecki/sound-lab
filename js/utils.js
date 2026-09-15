@@ -10,6 +10,12 @@ export function formatHz(hz) {
   return `${Math.round(hz)} Hz`;
 }
 
+export function formatDb(db) {
+  const rounded = Math.round(db * 10) / 10;
+  const sign = rounded > 0 ? "+" : "";
+  return `${sign}${rounded.toFixed(1)} dB`;
+}
+
 export function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
