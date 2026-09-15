@@ -73,6 +73,15 @@ export function drawWaveform(canvas, analyser, options = {}) {
     const dpr = fitCanvasToDisplaySize(canvas);
     const w = canvas.width;
     const h = canvas.height;
+    // A hidden canvas (display:none, e.g. a station toggling between two
+    // visualizations) has no layout box, so its rect — and therefore w/h
+    // here — is 0. drawImage throws on a zero-size source/destination, and
+    // there's nothing to usefully draw anyway, so just wait for it to come
+    // back rather than erroring every frame.
+    if (w === 0 || h === 0) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
 
     analyser.getByteTimeDomainData(data);
     if (!usesOwnData) triggerSource.getByteTimeDomainData(triggerData);
@@ -178,6 +187,15 @@ export function drawSpectrum(canvas, analyser, options = {}) {
     const dpr = fitCanvasToDisplaySize(canvas);
     const w = canvas.width;
     const h = canvas.height;
+    // A hidden canvas (display:none, e.g. a station toggling between two
+    // visualizations) has no layout box, so its rect — and therefore w/h
+    // here — is 0. drawImage throws on a zero-size source/destination, and
+    // there's nothing to usefully draw anyway, so just wait for it to come
+    // back rather than erroring every frame.
+    if (w === 0 || h === 0) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
 
     analyser.getByteFrequencyData(data);
 
@@ -241,6 +259,15 @@ export function drawSpectrogram(canvas, analyser, options = {}) {
     const dpr = fitCanvasToDisplaySize(canvas);
     const w = canvas.width;
     const h = canvas.height;
+    // A hidden canvas (display:none, e.g. a station toggling between two
+    // visualizations) has no layout box, so its rect — and therefore w/h
+    // here — is 0. drawImage throws on a zero-size source/destination, and
+    // there's nothing to usefully draw anyway, so just wait for it to come
+    // back rather than erroring every frame.
+    if (w === 0 || h === 0) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
 
     if (!initialized) {
       ctx.fillStyle = "#000";
@@ -281,6 +308,108 @@ export function drawSpectrogram(canvas, analyser, options = {}) {
   return function stop() {
     stopped = true;
     if (raf) cancelAnimationFrame(raf);
+  };
+}
+
+// Scrolling level-vs-time line — for anything that moves too slowly to see
+// in a normal waveform (an ADSR envelope's attack/decay/release ramps, or a
+// tremolo LFO's amplitude wobble). drawWaveform's window is capped at the
+// analyser's fftSize (a few dozen milliseconds at most), far too short to
+// show a change that plays out over whole seconds; this instead samples a
+// plain 0-1 level getter once per frame and redraws the whole scrolling
+// history each time, so it works for anything, not just audio nodes. Same
+// stop-function contract as the others.
+export function drawEnvelope(canvas, getLevel, options = {}) {
+  const ctx = canvas.getContext("2d");
+  const color = options.color || "#7CE0FF";
+  const fps = options.fps || 30;
+  const frameGap = 1000 / fps;
+  const historySeconds = options.historySeconds || 3;
+  const maxPoints = Math.max(2, Math.round(historySeconds * fps));
+  const history = new Array(maxPoints).fill(0);
+  let raf = null;
+  let stopped = false;
+  let lastDraw = 0;
+
+  function render(t) {
+    if (stopped) return;
+    if (t - lastDraw < frameGap) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
+    lastDraw = t;
+
+    const dpr = fitCanvasToDisplaySize(canvas);
+    const w = canvas.width;
+    const h = canvas.height;
+    // A hidden canvas (display:none, e.g. a station toggling between two
+    // visualizations) has no layout box, so its rect — and therefore w/h
+    // here — is 0. drawImage throws on a zero-size source/destination, and
+    // there's nothing to usefully draw anyway, so just wait for it to come
+    // back rather than erroring every frame.
+    if (w === 0 || h === 0) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
+
+    history.shift();
+    history.push(clamp(getLevel(), 0, 1));
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 1 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(0, h - 1);
+    ctx.lineTo(w, h - 1);
+    ctx.stroke();
+
+    const topMargin = 8 * dpr;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3 * dpr;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let i = 0; i < history.length; i++) {
+      const x = (i / (history.length - 1)) * w;
+      const y = h - 1 - history[i] * (h - topMargin - 1);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    raf = requestAnimationFrame(render);
+  }
+
+  raf = requestAnimationFrame(render);
+
+  return function stop() {
+    stopped = true;
+    if (raf) cancelAnimationFrame(raf);
+  };
+}
+
+// A crude but necessary envelope follower: peak amplitude of an analyser's
+// current time-domain buffer. AudioParam.value only reflects *scripted*
+// automation (setValueAtTime/linearRampToValueAtTime/etc.) — a signal
+// connected directly to a param as audio-rate modulation (an LFO driving a
+// gain, say) is summed in at the audio-thread level and never shows up in
+// a JS-side .value read, so reading the param directly for a drawEnvelope
+// getLevel would just report a flat, wrong number. This instead measures
+// the real, already-summed output from actual samples. Assumes whatever
+// oscillator feeds the chain has amplitude ±1 (true for a plain
+// oscillator), so the returned peak equals the instantaneous gain — scale
+// it yourself against whatever "1.0" should mean for your station.
+export function createLevelFollower(analyser) {
+  const data = new Uint8Array(analyser.fftSize);
+  return function getLevel() {
+    analyser.getByteTimeDomainData(data);
+    let peak = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i] / 128 - 1);
+      if (v > peak) peak = v;
+    }
+    return peak;
   };
 }
 
