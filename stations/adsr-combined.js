@@ -41,17 +41,36 @@ export function mount(container, { audioEngine, accent }) {
 
     <div class="preset-row" id="combined-presets"></div>
 
-    ${FIELDS.map(
-      (f) => `
-      <div class="osc-control">
-        <div class="osc-control-label">${f.label}</div>
-        <div class="big-readout" id="combined-${f.key}-readout"></div>
-        <input type="range" id="combined-${f.key}-slider" class="big-slider"
-          min="${RANGES[f.key].min}" max="${RANGES[f.key].max}" step="${RANGES[f.key].step}"
-          aria-label="${f.label}${f.unit === "%" ? " percent" : " in seconds"}" />
-      </div>
-    `,
-    ).join("")}
+    <div class="control-row">
+      ${FIELDS.slice(0, 2)
+        .map(
+          (f) => `
+        <div class="control-compact">
+          <div class="osc-control-label">${f.label}</div>
+          <div class="compact-readout" id="combined-${f.key}-readout"></div>
+          <input type="range" id="combined-${f.key}-slider" class="compact-slider"
+            min="${RANGES[f.key].min}" max="${RANGES[f.key].max}" step="${RANGES[f.key].step}"
+            aria-label="${f.label}${f.unit === "%" ? " percent" : " in seconds"}" />
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
+    <div class="control-row">
+      ${FIELDS.slice(2, 4)
+        .map(
+          (f) => `
+        <div class="control-compact">
+          <div class="osc-control-label">${f.label}</div>
+          <div class="compact-readout" id="combined-${f.key}-readout"></div>
+          <input type="range" id="combined-${f.key}-slider" class="compact-slider"
+            min="${RANGES[f.key].min}" max="${RANGES[f.key].max}" step="${RANGES[f.key].step}"
+            aria-label="${f.label}${f.unit === "%" ? " percent" : " in seconds"}" />
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
 
     <div class="osc-control-label">Amplitude Envelope</div>
     <canvas class="spectrum-canvas" id="combined-canvas" width="600" height="200"

@@ -423,6 +423,98 @@
   font-weight: 700;
 }
 
+/* -------- compact controls (secondary params on multi-control stations) -------- */
+/* .big-readout/.big-slider are sized for one headline control per station — stack
+   3-4 of them (EQ's Frequency+Gain+Q, ADSR's four fields) and the page is mostly
+   scrolling before any visualization shows. .control-row holds 2+ .control-compact
+   items side by side, each with a much smaller readout and slider, so only the
+   one control a station is really about gets the full-size treatment. */
+
+.control-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.control-compact {
+  flex: 1;
+  min-width: 0;
+}
+
+.compact-readout {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+  font-weight: 700;
+  text-align: center;
+  margin: 0.4rem 0;
+  color: var(--accent, var(--accent-default));
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-slider {
+  width: 100%;
+  height: 2rem;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  margin: 0.4rem 0;
+}
+
+.compact-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.compact-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.compact-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--accent, var(--accent-default));
+  border: 3px solid #0f1220;
+  box-shadow: 0 0 0 2px var(--accent, var(--accent-default));
+}
+
+.compact-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent, var(--accent-default));
+  border: 3px solid #0f1220;
+  box-shadow: 0 0 0 2px var(--accent, var(--accent-default));
+}
+
+.compact-slider:focus-visible {
+  outline: none;
+}
+
+.compact-slider:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.compact-slider:focus-visible::-moz-range-thumb {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .control-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
 /* -------- frequency x amplitude pad -------- */
 
 .xy-readouts {

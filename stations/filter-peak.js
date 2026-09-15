@@ -55,18 +55,20 @@ export function mount(container, { audioEngine, accent }) {
         value="${DEFAULT_CENTER}" step="1" aria-label="Peak filter center frequency in Hertz" />
     </div>
 
-    <div class="osc-control">
-      <div class="osc-control-label">Gain</div>
-      <div class="big-readout" id="pk-gain-readout">${formatDb(DEFAULT_GAIN)}</div>
-      <input type="range" id="pk-gain-slider" class="big-slider" min="${MIN_GAIN}" max="${MAX_GAIN}"
-        value="${DEFAULT_GAIN}" step="0.5" aria-label="Boost or cut in decibels" />
-    </div>
+    <div class="control-row">
+      <div class="control-compact">
+        <div class="osc-control-label">Gain</div>
+        <div class="compact-readout" id="pk-gain-readout">${formatDb(DEFAULT_GAIN)}</div>
+        <input type="range" id="pk-gain-slider" class="compact-slider" min="${MIN_GAIN}" max="${MAX_GAIN}"
+          value="${DEFAULT_GAIN}" step="0.5" aria-label="Boost or cut in decibels" />
+      </div>
 
-    <div class="osc-control">
-      <div class="osc-control-label">Width (Q)</div>
-      <div class="big-readout" id="pk-q-readout">${DEFAULT_Q.toFixed(1)}</div>
-      <input type="range" id="pk-q-slider" class="big-slider" min="${MIN_Q}" max="${MAX_Q}"
-        value="${DEFAULT_Q}" step="0.1" aria-label="Filter width, higher is narrower" />
+      <div class="control-compact">
+        <div class="osc-control-label">Width (Q)</div>
+        <div class="compact-readout" id="pk-q-readout">${DEFAULT_Q.toFixed(1)}</div>
+        <input type="range" id="pk-q-slider" class="compact-slider" min="${MIN_Q}" max="${MAX_Q}"
+          value="${DEFAULT_Q}" step="0.1" aria-label="Filter width, higher is narrower" />
+      </div>
     </div>
 
     <div class="osc-control-label">Spectrum (frequency)</div>
