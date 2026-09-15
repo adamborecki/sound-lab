@@ -16,8 +16,8 @@ const DEFAULT_CENTER = 1000;
 const MIN_BANDWIDTH = 20;
 const MAX_BANDWIDTH = 4000;
 const DEFAULT_BANDWIDTH = 300;
-const MIN_Q = 0.3;
-const MAX_Q = 40;
+const MIN_Q = 0.1;
+const MAX_Q = 400;
 const MIN_HZ_AXIS = 20;
 const MAX_HZ_AXIS = 20000;
 const AXIS_LABELS = [20, 100, 1000, 10000];
@@ -202,8 +202,18 @@ export function mount(container, { audioEngine, accent }) {
   }
 
   // A single notch node isn't cascaded (see filter-chain.js's bandpassQ for
-  // why a 4-stage chain needs compensation) — the naive Q = center /
-  // bandwidth already lines the actual -3 dB width up with what's shown.
+  // why a 4-stage chain needs compensation), and Q = center / bandwidth
+  // tracks the actual -3 dB width reasonably (measured with
+  // getFrequencyResponse: within ~20% across this station's range, tighter
+  // near the middle) -- BUT the old MIN_Q/MAX_Q clamp (0.3-40) was far too
+  // narrow for the slider's real extremes: at a high center with a narrow
+  // requested bandwidth, the naive Q needed is much higher than 40 (e.g.
+  // center 8000 / bandwidth 20 wants Q=400), so it got clamped and the
+  // actual notch came out up to ~8x WIDER than the number on screen. Widened
+  // to 0.1-400, which covers the slider's real range; only the degenerate
+  // corner (a low center asked for a bandwidth wider than the center itself
+  // — center 100 / bandwidth 4000 — stays inaccurate, since no Q makes a
+  // notch's -3 dB skirts extend below 0 Hz).
   function notchQ(centerHz, bandwidthHz) {
     return clamp(centerHz / bandwidthHz, MIN_Q, MAX_Q);
   }

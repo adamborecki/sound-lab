@@ -244,21 +244,42 @@ export function drawFilterCurve(canvas, filterNode, options = {}) {
   const maxHz = options.maxHz || 20000;
   const minDb = options.minDb ?? -30;
   const maxDb = options.maxDb ?? 18;
-  const points = 200;
+  const COARSE_POINTS = 200;
+  const FINE_POINTS = 150;
+  const TOTAL_POINTS = COARSE_POINTS + FINE_POINTS;
   let raf = null;
   let stopped = false;
   const reduced = prefersReducedMotion();
   const frameGap = reduced ? 200 : 0;
   let lastDraw = 0;
 
-  // Log-spaced so index i lines up with logPositionForFreq(freqs[i]) === i/(points-1),
-  // which is what lets this canvas share an axis-label row with drawSpectrum's.
-  const freqs = new Float32Array(points);
-  for (let i = 0; i < points; i++) {
-    freqs[i] = minHz * Math.pow(maxHz / minHz, i / (points - 1));
+  // A high-Q notch/peak/resonant lowpass can be far narrower than the gap
+  // between two coarse log-spaced samples (e.g. a Q=400 notch at 8 kHz is
+  // only ~20 Hz wide, while neighboring coarse points there sit ~280 Hz
+  // apart) — the response dips and recovers entirely *between* samples, so
+  // the coarse grid alone can miss it completely and draw a flat line where
+  // there's actually a deep notch. Every frame, a second cluster of points
+  // is packed tightly (±2%, linear) around the filter's own current
+  // frequency param — wherever the interesting feature actually is for
+  // every type this function serves (cutoff, center, or corner) — and
+  // merged with the coarse grid so the shape is never sampled away.
+  const freqs = new Float32Array(TOTAL_POINTS);
+  const magResponse = new Float32Array(TOTAL_POINTS);
+  const phaseResponse = new Float32Array(TOTAL_POINTS);
+
+  function buildFreqs() {
+    for (let i = 0; i < COARSE_POINTS; i++) {
+      freqs[i] = minHz * Math.pow(maxHz / minHz, i / (COARSE_POINTS - 1));
+    }
+    const focusHz = clamp(filterNode.frequency.value, minHz, maxHz);
+    const loFine = Math.max(minHz, focusHz * 0.98);
+    const hiFine = Math.min(maxHz, focusHz * 1.02);
+    for (let i = 0; i < FINE_POINTS; i++) {
+      const t = FINE_POINTS === 1 ? 0 : i / (FINE_POINTS - 1);
+      freqs[COARSE_POINTS + i] = loFine + (hiFine - loFine) * t;
+    }
+    freqs.sort();
   }
-  const magResponse = new Float32Array(points);
-  const phaseResponse = new Float32Array(points);
 
   function render(t) {
     if (stopped) return;
@@ -276,12 +297,14 @@ export function drawFilterCurve(canvas, filterNode, options = {}) {
       return;
     }
 
+    buildFreqs();
     filterNode.getFrequencyResponse(freqs, magResponse, phaseResponse);
 
     const dbToY = (db) => {
       const clamped = clamp(db, minDb, maxDb);
       return h - ((clamped - minDb) / (maxDb - minDb)) * h;
     };
+    const xForFreq = (freq) => logPositionForFreq(freq, minHz, maxHz) * w;
     const zeroY = dbToY(0);
 
     ctx.clearRect(0, 0, w, h);
@@ -296,24 +319,23 @@ export function drawFilterCurve(canvas, filterNode, options = {}) {
     ctx.setLineDash([]);
 
     ctx.beginPath();
-    for (let i = 0; i < points; i++) {
+    for (let i = 0; i < TOTAL_POINTS; i++) {
       const db = 20 * Math.log10(Math.max(magResponse[i], 1e-7));
-      const x = (i / (points - 1)) * w;
+      const x = xForFreq(freqs[i]);
       const y = dbToY(db);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
-    const lastX = w;
-    ctx.lineTo(lastX, zeroY);
+    ctx.lineTo(w, zeroY);
     ctx.lineTo(0, zeroY);
     ctx.closePath();
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.22)`;
     ctx.fill();
 
     ctx.beginPath();
-    for (let i = 0; i < points; i++) {
+    for (let i = 0; i < TOTAL_POINTS; i++) {
       const db = 20 * Math.log10(Math.max(magResponse[i], 1e-7));
-      const x = (i / (points - 1)) * w;
+      const x = xForFreq(freqs[i]);
       const y = dbToY(db);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
