@@ -1,9 +1,8 @@
 import {
   drawSpectrum,
-  drawSpectrogram,
+  drawFilterCurve,
   drawIdleMessage,
   logPositionForFreq,
-  buildSpectrogramFreqAxis,
 } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
 import { getLoopBuffer } from "../js/loop-source.js";
@@ -59,17 +58,15 @@ export function mount(container, { audioEngine, accent }) {
         value="${DEFAULT_GAIN}" step="0.5" aria-label="Boost or cut in decibels" />
     </div>
 
+    <div class="osc-control-label">Filter Response (gain vs. frequency)</div>
+    <canvas class="spectrum-canvas" id="ls-filter-canvas" width="600" height="200"
+      role="img" aria-label="Live filter response curve — the exact shape this filter is applying right now"></canvas>
+    <div class="spectrum-axis" id="ls-filter-axis"></div>
+
     <div class="osc-control-label">Spectrum (frequency)</div>
     <canvas class="spectrum-canvas" id="ls-spectrum-canvas" width="600" height="200"
       role="img" aria-label="Live frequency spectrum after the filter"></canvas>
     <div class="spectrum-axis" id="ls-spectrum-axis"></div>
-
-    <div class="osc-control-label">Spectrogram (frequency vs. time)</div>
-    <div class="spectrogram-row">
-      <div class="spectrogram-freq-axis" id="ls-spectrogram-axis"></div>
-      <canvas class="spectrum-canvas" id="ls-spectrogram-canvas" width="600" height="220"
-        role="img" aria-label="Scrolling spectrogram after the filter — frequency on the vertical axis, time on the horizontal axis"></canvas>
-    </div>
   `;
 
   const sourceRow = container.querySelector("#ls-sources");
@@ -79,16 +76,17 @@ export function mount(container, { audioEngine, accent }) {
   const gainReadout = container.querySelector("#ls-gain-readout");
   const spectrumCanvas = container.querySelector("#ls-spectrum-canvas");
   const spectrumAxisEl = container.querySelector("#ls-spectrum-axis");
-  const spectrogramCanvas = container.querySelector("#ls-spectrogram-canvas");
-  const spectrogramAxisEl = container.querySelector("#ls-spectrogram-axis");
+  const filterCanvas = container.querySelector("#ls-filter-canvas");
+  const filterAxisEl = container.querySelector("#ls-filter-axis");
 
-  for (const hz of AXIS_LABELS) {
-    const tick = document.createElement("span");
-    tick.textContent = `${formatHzLabel(hz)} Hz`;
-    tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
-    spectrumAxisEl.appendChild(tick);
+  for (const axis of [spectrumAxisEl, filterAxisEl]) {
+    for (const hz of AXIS_LABELS) {
+      const tick = document.createElement("span");
+      tick.textContent = `${formatHzLabel(hz)} Hz`;
+      tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
+      axis.appendChild(tick);
+    }
   }
-  buildSpectrogramFreqAxis(spectrogramAxisEl, AXIS_LABELS, MIN_HZ_AXIS, MAX_HZ_AXIS);
 
   const buttons = new Map();
   for (const s of SOURCES) {
@@ -110,7 +108,7 @@ export function mount(container, { audioEngine, accent }) {
   let filterNode = null;
   let localAnalyser = null;
   let stopSpectrumViz = null;
-  let stopSpectrogramViz = null;
+  let stopFilterViz = null;
   let sourceNode = null;
   let sourceGain = null;
   let loopBufferPromise = null;
@@ -254,7 +252,7 @@ export function mount(container, { audioEngine, accent }) {
       minHz: MIN_HZ_AXIS,
       maxHz: MAX_HZ_AXIS,
     });
-    stopSpectrogramViz = drawSpectrogram(spectrogramCanvas, localAnalyser, {
+    stopFilterViz = drawFilterCurve(filterCanvas, filterNode, {
       color: accent,
       minHz: MIN_HZ_AXIS,
       maxHz: MAX_HZ_AXIS,
@@ -270,14 +268,14 @@ export function mount(container, { audioEngine, accent }) {
     setupAudio();
   } else {
     drawIdleMessage(spectrumCanvas, "Tap Start Sound to hear it");
-    drawIdleMessage(spectrogramCanvas, "Tap Start Sound to hear it");
+    drawIdleMessage(filterCanvas, "Tap Start Sound to hear it");
   }
   window.addEventListener("soundlab:started", setupAudio);
 
   return function unmount() {
     window.removeEventListener("soundlab:started", setupAudio);
     if (stopSpectrumViz) stopSpectrumViz();
-    if (stopSpectrogramViz) stopSpectrogramViz();
+    if (stopFilterViz) stopFilterViz();
     stopCurrentSource();
     if (filterNode) filterNode.disconnect();
     if (localAnalyser) localAnalyser.disconnect();

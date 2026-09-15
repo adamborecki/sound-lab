@@ -6,6 +6,7 @@ import {
   buildSpectrogramFreqAxis,
 } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
+import { getLoopBuffer } from "../js/loop-source.js";
 import { clamp, formatHz } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
 
@@ -22,6 +23,12 @@ const MIN_HZ_AXIS = 20;
 const MAX_HZ_AXIS = 8000;
 const AXIS_LABELS = [20, 100, 1000, 8000];
 const COMPLETE_AFTER_INTERACTIONS = 5;
+
+const SOURCES = [
+  { id: "saw", label: "Buzzy Voice" },
+  { id: "white", label: "White Noise" },
+  { id: "loop", label: "Musical Loop" },
+];
 
 // Simplified single-formant mapping — a real vowel is shaped by two or
 // three resonances at once (F1, F2, F3), but sweeping just one strong
@@ -45,11 +52,15 @@ export function mount(container, { audioEngine, accent }) {
       Vowels aren't really about pitch. Say "ah" then "ee" on the same note and the pitch doesn't
       move — but a resonance in your vocal tract (a <strong>formant</strong>) does, and that's what
       your ear latches onto. Here, a single peaking filter (from the last station) plays that
-      resonance's role on top of a plain buzzy tone.
+      resonance's role on top of whatever source you pick below.
     </p>
 
     <div class="filter-shape-badge">${waveIconSvg("peaking")}<span>One Formant, Sweeping</span></div>
 
+    <div class="osc-control-label">Source</div>
+    <div class="preset-row" id="vf-sources"></div>
+
+    <div class="osc-control-label">Vowel</div>
     <div class="preset-row" id="vf-presets"></div>
 
     <div class="osc-control">
@@ -84,6 +95,7 @@ export function mount(container, { audioEngine, accent }) {
     </div>
   `;
 
+  const sourceRow = container.querySelector("#vf-sources");
   const presetRow = container.querySelector("#vf-presets");
   const freqSlider = container.querySelector("#vf-freq-slider");
   const freqReadout = container.querySelector("#vf-freq-readout");
@@ -113,14 +125,28 @@ export function mount(container, { audioEngine, accent }) {
     buttons.set(v.id, btn);
   }
 
+  const sourceButtons = new Map();
+  for (const s of SOURCES) {
+    const btn = document.createElement("button");
+    btn.className = "chip";
+    btn.type = "button";
+    btn.textContent = s.label;
+    btn.addEventListener("click", () => selectSource(s.id, true));
+    sourceRow.appendChild(btn);
+    sourceButtons.set(s.id, btn);
+  }
+
   let freq = DEFAULT_FREQ;
   let q = DEFAULT_Q;
+  let currentSource = "saw";
   let interactionCount = 0;
   const triedVowels = new Set();
+  const triedSources = new Set();
 
   let filterNode = null;
-  let voiceOsc = null;
-  let voiceGain = null;
+  let sourceNode = null;
+  let sourceGain = null;
+  let loopBufferPromise = null;
   let localAnalyser = null;
   let stopSpectrumViz = null;
   let stopSpectrogramViz = null;
@@ -128,6 +154,86 @@ export function mount(container, { audioEngine, accent }) {
   function maybeComplete() {
     if (triedVowels.size >= 3 && interactionCount >= COMPLETE_AFTER_INTERACTIONS) {
       markComplete(STATION_ID);
+    }
+  }
+
+  function applySourceSelection(id) {
+    currentSource = id;
+    for (const [sid, btn] of sourceButtons) btn.classList.toggle("active", sid === id);
+  }
+
+  function stopCurrentSource() {
+    if (!sourceGain) return;
+    const gain = sourceGain;
+    const node = sourceNode;
+    gain.gain.setTargetAtTime(0, audioEngine.ctx.currentTime, 0.02);
+    setTimeout(() => {
+      try {
+        node.stop();
+      } catch (e) {
+        /* never started, or already stopped */
+      }
+      node.disconnect();
+      gain.disconnect();
+    }, 150);
+    sourceNode = null;
+    sourceGain = null;
+  }
+
+  function startSource(id) {
+    const ctx = audioEngine.ctx;
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(filterNode);
+
+    if (id === "white") {
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      src.connect(gain);
+      src.start();
+      sourceNode = src;
+    } else if (id === "saw") {
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.value = VOICE_HZ;
+      osc.connect(gain);
+      osc.start();
+      sourceNode = osc;
+    } else {
+      const src = ctx.createBufferSource();
+      src.loop = true;
+      src.connect(gain);
+      sourceNode = src;
+      loopBufferPromise.then((buffer) => {
+        if (sourceNode !== src) return; // superseded before it loaded
+        src.buffer = buffer;
+        src.start();
+      });
+    }
+
+    sourceGain = gain;
+    const targetGain = id === "white" ? 0.3 : id === "saw" ? 0.28 : 0.4;
+    gain.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.03);
+  }
+
+  function selectSource(id, userInitiated) {
+    const changed = id !== currentSource;
+    if (changed) {
+      applySourceSelection(id);
+      if (filterNode) {
+        stopCurrentSource();
+        startSource(id);
+      }
+    }
+    triedSources.add(id);
+    if (userInitiated) {
+      interactionCount += 1;
+      recordInteraction(STATION_ID);
+      maybeComplete();
     }
   }
 
@@ -195,16 +301,6 @@ export function mount(container, { audioEngine, accent }) {
     applyFilterParams();
     filterNode.connect(audioEngine.masterGain);
 
-    voiceOsc = ctx.createOscillator();
-    voiceOsc.type = "sawtooth";
-    voiceOsc.frequency.value = VOICE_HZ;
-    voiceGain = ctx.createGain();
-    voiceGain.gain.value = 0;
-    voiceOsc.connect(voiceGain);
-    voiceGain.connect(filterNode);
-    voiceOsc.start();
-    voiceGain.gain.setTargetAtTime(0.22, ctx.currentTime, 0.05);
-
     localAnalyser = ctx.createAnalyser();
     localAnalyser.fftSize = 8192;
     localAnalyser.smoothingTimeConstant = 0.6;
@@ -220,9 +316,13 @@ export function mount(container, { audioEngine, accent }) {
       minHz: MIN_HZ_AXIS,
       maxHz: MAX_HZ_AXIS,
     });
+
+    loopBufferPromise = getLoopBuffer(ctx);
+    startSource(currentSource);
   }
 
   highlightNearest();
+  applySourceSelection(currentSource);
 
   if (audioEngine.isStarted) {
     setupAudio();
@@ -236,20 +336,7 @@ export function mount(container, { audioEngine, accent }) {
     window.removeEventListener("soundlab:started", setupAudio);
     if (stopSpectrumViz) stopSpectrumViz();
     if (stopSpectrogramViz) stopSpectrogramViz();
-    if (voiceGain) {
-      const g = voiceGain;
-      const osc = voiceOsc;
-      g.gain.setTargetAtTime(0, audioEngine.ctx.currentTime, 0.02);
-      setTimeout(() => {
-        try {
-          osc.stop();
-        } catch (e) {
-          /* already stopped */
-        }
-        osc.disconnect();
-        g.disconnect();
-      }, 150);
-    }
+    stopCurrentSource();
     if (filterNode) filterNode.disconnect();
     if (localAnalyser) localAnalyser.disconnect();
   };

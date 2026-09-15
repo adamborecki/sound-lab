@@ -242,16 +242,6 @@ export const stations = [
     accent: "#C46BFF",
   },
   {
-    id: "eq-intro",
-    title: "EQ: Peak, Shelf & Notch",
-    category: "filters",
-    purpose: "Filters that boost or cut instead of cutting outright — the shapes behind an EQ knob.",
-    day: 5,
-    section: "EQ: Peak, Shelf & Notch",
-    module: "../stations/eq-intro.js",
-    accent: "#B6FF6B",
-  },
-  {
     id: "filter-peak",
     title: "Parametric EQ (Peak / Bell)",
     category: "filters",
@@ -290,6 +280,16 @@ export const stations = [
     section: "EQ: Peak, Shelf & Notch",
     module: "../stations/filter-notch.js",
     accent: "#FF6BC4",
+  },
+  {
+    id: "eq-intro",
+    title: "EQ: Peak, Shelf & Notch",
+    category: "filters",
+    purpose: "Filters that boost or cut instead of cutting outright — the shapes behind an EQ knob.",
+    day: 5,
+    section: "EQ: Peak, Shelf & Notch",
+    module: "../stations/eq-intro.js",
+    accent: "#B6FF6B",
   },
   {
     id: "vowel-formants",

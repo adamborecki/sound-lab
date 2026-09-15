@@ -229,6 +229,112 @@ function hexToRgb(hex) {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
+// Draws a live EQ-style response curve (gain in dB vs. log frequency) for
+// a single BiquadFilterNode, using its own getFrequencyResponse() — the
+// browser's exact transfer-function math, not an approximation — so the
+// curve is the real shape of whatever the student's sliders currently do,
+// updating every frame. This is a much more direct answer to "what is the
+// filter doing right now" than reading it off a spectrum/spectrogram of
+// whatever happens to be playing through it, especially for boost/cut
+// shapes (peaking, shelves, notch) where a spectrogram mostly shows noise.
+export function drawFilterCurve(canvas, filterNode, options = {}) {
+  const ctx = canvas.getContext("2d");
+  const { r, g, b } = hexToRgb(options.color || "#7CE0FF");
+  const minHz = options.minHz || 20;
+  const maxHz = options.maxHz || 20000;
+  const minDb = options.minDb ?? -30;
+  const maxDb = options.maxDb ?? 18;
+  const points = 200;
+  let raf = null;
+  let stopped = false;
+  const reduced = prefersReducedMotion();
+  const frameGap = reduced ? 200 : 0;
+  let lastDraw = 0;
+
+  // Log-spaced so index i lines up with logPositionForFreq(freqs[i]) === i/(points-1),
+  // which is what lets this canvas share an axis-label row with drawSpectrum's.
+  const freqs = new Float32Array(points);
+  for (let i = 0; i < points; i++) {
+    freqs[i] = minHz * Math.pow(maxHz / minHz, i / (points - 1));
+  }
+  const magResponse = new Float32Array(points);
+  const phaseResponse = new Float32Array(points);
+
+  function render(t) {
+    if (stopped) return;
+    if (t - lastDraw < frameGap) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
+    lastDraw = t;
+
+    const dpr = fitCanvasToDisplaySize(canvas);
+    const w = canvas.width;
+    const h = canvas.height;
+    if (w === 0 || h === 0) {
+      raf = requestAnimationFrame(render);
+      return;
+    }
+
+    filterNode.getFrequencyResponse(freqs, magResponse, phaseResponse);
+
+    const dbToY = (db) => {
+      const clamped = clamp(db, minDb, maxDb);
+      return h - ((clamped - minDb) / (maxDb - minDb)) * h;
+    };
+    const zeroY = dbToY(0);
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+    ctx.lineWidth = 1 * dpr;
+    ctx.setLineDash([4 * dpr, 3 * dpr]);
+    ctx.beginPath();
+    ctx.moveTo(0, zeroY);
+    ctx.lineTo(w, zeroY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+    for (let i = 0; i < points; i++) {
+      const db = 20 * Math.log10(Math.max(magResponse[i], 1e-7));
+      const x = (i / (points - 1)) * w;
+      const y = dbToY(db);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    const lastX = w;
+    ctx.lineTo(lastX, zeroY);
+    ctx.lineTo(0, zeroY);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.22)`;
+    ctx.fill();
+
+    ctx.beginPath();
+    for (let i = 0; i < points; i++) {
+      const db = 20 * Math.log10(Math.max(magResponse[i], 1e-7));
+      const x = (i / (points - 1)) * w;
+      const y = dbToY(db);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+    ctx.lineWidth = 3 * dpr;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    raf = requestAnimationFrame(render);
+  }
+
+  raf = requestAnimationFrame(render);
+
+  return function stop() {
+    stopped = true;
+    if (raf) cancelAnimationFrame(raf);
+  };
+}
+
 // Scrolling frequency-vs-time waterfall (a real spectrogram): each frame
 // shifts the existing image one column left and draws a fresh column at
 // the right, colored by amplitude at each log-scaled frequency. Same

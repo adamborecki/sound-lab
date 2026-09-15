@@ -1,4 +1,4 @@
-import { drawSpectrum, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
+import { drawSpectrum, drawFilterCurve, drawIdleMessage, logPositionForFreq } from "../js/visualizers.js";
 import { waveIconSvg } from "../js/wave-icons.js";
 import { clamp, formatHz, formatDb } from "../js/utils.js";
 import { recordInteraction, markComplete } from "../js/progress.js";
@@ -75,6 +75,16 @@ export function mount(container, { audioEngine, accent }) {
       </div>
     </div>
 
+    <div class="osc-control-label">Filter Response (gain vs. frequency)</div>
+    <canvas class="spectrum-canvas" id="eq-filter-canvas" width="600" height="200"
+      role="img" aria-label="Live filter response curve — the exact shape this filter is applying right now"></canvas>
+    <div class="spectrum-axis" id="eq-filter-axis"></div>
+
+    <p class="fft-caption">
+      This is the filter's actual shape — computed directly from its settings, not from whatever's
+      playing. Watch it redraw live as you drag Frequency, Gain, or Width.
+    </p>
+
     <div class="osc-control-label">Spectrum (frequency)</div>
     <canvas class="spectrum-canvas" id="eq-canvas" width="600" height="200"
       role="img" aria-label="Live frequency spectrum of filtered white noise"></canvas>
@@ -99,12 +109,16 @@ export function mount(container, { audioEngine, accent }) {
   const qReadout = container.querySelector("#eq-q-readout");
   const canvas = container.querySelector("#eq-canvas");
   const axisEl = container.querySelector("#eq-axis");
+  const filterCanvas = container.querySelector("#eq-filter-canvas");
+  const filterAxisEl = container.querySelector("#eq-filter-axis");
 
-  for (const hz of AXIS_LABELS) {
-    const tick = document.createElement("span");
-    tick.textContent = `${formatHzLabel(hz)} Hz`;
-    tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
-    axisEl.appendChild(tick);
+  for (const axis of [axisEl, filterAxisEl]) {
+    for (const hz of AXIS_LABELS) {
+      const tick = document.createElement("span");
+      tick.textContent = `${formatHzLabel(hz)} Hz`;
+      tick.style.left = `${logPositionForFreq(hz, MIN_HZ_AXIS, MAX_HZ_AXIS) * 100}%`;
+      axis.appendChild(tick);
+    }
   }
 
   const buttons = new Map();
@@ -128,6 +142,7 @@ export function mount(container, { audioEngine, accent }) {
   let filterNode = null;
   let localAnalyser = null;
   let stopViz = null;
+  let stopFilterViz = null;
   let noiseVoice = null;
 
   function maybeComplete() {
@@ -235,6 +250,11 @@ export function mount(container, { audioEngine, accent }) {
       minHz: MIN_HZ_AXIS,
       maxHz: MAX_HZ_AXIS,
     });
+    stopFilterViz = drawFilterCurve(filterCanvas, filterNode, {
+      color: accent,
+      minHz: MIN_HZ_AXIS,
+      maxHz: MAX_HZ_AXIS,
+    });
   }
 
   applySelection(current);
@@ -243,12 +263,14 @@ export function mount(container, { audioEngine, accent }) {
     setupAudio();
   } else {
     drawIdleMessage(canvas, "Tap Start Sound to hear it");
+    drawIdleMessage(filterCanvas, "Tap Start Sound to hear it");
   }
   window.addEventListener("soundlab:started", setupAudio);
 
   return function unmount() {
     window.removeEventListener("soundlab:started", setupAudio);
     if (stopViz) stopViz();
+    if (stopFilterViz) stopFilterViz();
     if (noiseVoice) noiseVoice.stop();
     if (filterNode) filterNode.disconnect();
     if (localAnalyser) localAnalyser.disconnect();
